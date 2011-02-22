@@ -1,0 +1,864 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="rcd_adv_profile_photo" active="1">
+	<title>Advenced Profile Photo</title>
+	<description>Advenced profile photo and avatar editing</description>
+	<version>0.1</version>
+	<url />
+	<versioncheckurl />
+	<apm_releasedate>0</apm_releasedate>
+	<apm_author />
+	<apm_relatedurl />
+	<apm_extrainfo />
+	<apm_extraedit />
+	<dependencies>
+	</dependencies>
+	<codes>
+		<code version="0.1">
+			<installcode><![CDATA[$db->hide_errors();
+$vbulletin->db->query_write("
+CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "custombigpic (
+  `userid` INT UNSIGNED NOT NULL,
+  `width` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `height` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `top` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `left` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `sel_width` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `sel_height` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `dateline`  INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`userid`)
+)");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicrevision` INT(10) UNSIGNED NOT NULL DEFAULT 0 ");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `isbigpicadded` TINYINT UNSIGNED NOT NULL DEFAULT 0 ");
+$db->show_errors();]]></installcode>
+			<uninstallcode />
+		</code>
+	</codes>
+	<templates>
+		<template name="app_css" templatetype="template" date="1296442200" username="admin" version="0.1"><![CDATA[<!-- Skin CSS file -->
+<link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/resize.css">
+<link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/imagecropper.css">
+
+<style type="text/css">
+
+.yui-resize {
+    border: 1px dashed #fff !important;   
+}
+
+.yui-resize-handle {
+    background-color:#F2F2F2;
+}
+
+.yui-resize-handle-inner-l, .yui-resize-handle-inner-r {
+    background:transparent url({vb:stylevar yuipath}/assets/skins/sam/layout_sprite.png) no-repeat 0 -5px;
+    height:16px;
+    width:5px;
+    position:absolute;
+    top:45%;
+}
+.yui-resize-handle-inner-t, .yui-resize-handle-inner-b {
+    background:url({vb:stylevar yuipath}/assets/skins/sam/layout_sprite.png) no-repeat scroll -20px 0 transparent;
+    height:5px;
+    width:16px;
+    position:absolute;
+    left:50%;
+}
+
+.yui-resize-handle-br {
+    background:url({vb:stylevar yuipath}/assets/skins/sam/layout_sprite.png) no-repeat scroll -22px -62px transparent;
+}
+
+.yui-resize-handle-tr {
+    background:url({vb:stylevar yuipath}/assets/skins/sam/layout_sprite.png) no-repeat scroll -22px -42px transparent;
+}
+
+.yui-resize-handle-tl {
+    background:url({vb:stylevar yuipath}/assets/skins/sam/layout_sprite.png) no-repeat scroll -22px -82px transparent;
+}
+
+.yui-resize-handle-bl {
+    background:url({vb:stylevar yuipath}/assets/skins/sam/layout_sprite.png) no-repeat scroll -22px -23px transparent;
+}
+
+.app_main_wrapper {
+    position:relative;
+    width:800px;
+    left:50%;
+    margin-left:-400px;
+}
+
+.avatar_result_wrapper {
+    top:10;
+    right:-{vb:math {vb:raw min_size}/3 }px;
+    position:absolute;
+    z-index:2;
+    width:{vb:raw min_size}px;
+    -moz-border-radius:{vb:raw radius}px;
+    -webkit-border-radius:{vb:raw radius}px;
+    border:1px solid;
+    padding:{vb:stylevar padding};
+    margin-top:{vb:stylevar padding};
+    background-color: white;
+}
+
+.avatar_result_wrapper img {
+    width:{vb:raw min_size}px;
+    height:{vb:raw min_size}px;
+    overflow:hidden;
+}
+
+#app_upload_form {
+    display:inline;
+}
+
+.checkbox_container {
+    float:left;
+    padding-top:{vb:stylevar padding};
+    width:auto;
+}
+
+.button_container {
+    text-align:right;
+    padding-top:20px;
+}
+
+.source_image_wrapper {
+    left:50%;
+    position:relative;
+}
+
+.app_resize {
+    position:absolute;
+}
+
+.app_resize_mask {
+    position: absolute;
+    left: 0pt;
+    top: 0pt;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    opacity: 0.5;
+    -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+    filter: alpha(opacity=50);
+}
+
+.app_note {
+    padding:{vb:stylevar padding};
+}
+
+.app_contour {
+    border: {vb:stylevar tabslight_border};
+}
+
+.app_contour .button[disabled] {
+    opacity:0.5;
+    -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+    filter: alpha(opacity=50);
+}
+
+.app_control_links {
+    text-align:right;
+    padding-top:{vb:stylevar padding};
+    position:relative;
+    float:right;
+    width:auto;
+}
+
+.app_control_links a {
+    margin-left:{vb:stylevar padding};
+    text-decoration:underline;
+}
+
+#avatarupload {
+    opacity:0;
+    -ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+    filter: alpha(opacity=0);
+    z-index:2;
+    top:0px;
+    position:absolute;
+    margin-top:{vb:stylevar padding};
+}
+
+.app_zindex {
+    z-index:3;
+}
+</style>]]></template>
+		<template name="app_edit_picture" templatetype="template" date="1297757709" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+    <vb:if condition="$show['app_editing_options']">
+        <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
+            <img id='avatar_img_crop' src="{vb:raw path}" />
+        </div>
+    </vb:if>
+    <div style="overflow:hidden;">
+        <div class="source_image_wrapper" id="avatar_img_wrap">
+            <img src="{vb:raw path}" id="avatar_img" />
+            <vb:if condition="$show['app_editing_options']">
+                <div class="app_resize_mask"></div>
+                <div id="app_resize" class="app_resize"></div>
+            </vb:if>
+        </div>
+        <vb:if condition="$show['app_editing_options']">
+            <div id="app_clear_div" style="width:100%;clear:both;"></div>
+            <div class="checkbox_container">
+                <div><input id="app_chkbox_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
+                <div id="app_chkbox_div_2" style="visibility:hidden;"><input id="app_chkbox_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
+            </div>
+        </vb:if>
+        <div class="app_control_links" id="control_buttons_wrap">
+            <form id="app_upload_form" action="ajax.php?do=upload_picture" method="post" enctype="multipart/form-data" target="upload_target" >
+                <a href="#" onclick="return false;" id="app_avatarupload_link">{vb:rawphrase upload}</a>
+                <input id="avatarupload" type="file" class="primary textbox" name="upload" onchange="APP_Upload_File()"/>
+                <input type="hidden" name="s" value="{vb:raw session.sessionhash}" />
+                <input type="hidden" name="securitytoken" value="{vb:raw bbuserinfo.securitytoken}" />
+                <img src="{vb:stylevar imgdir_misc}/progress.gif" alt="" border="0" id="app_progress" style="display:none;"/>
+            </form>
+            <vb:if condition="$show['app_editing_options']">
+                <a href="#" onclick="APP_DeletePicture(); return false;" rel="nofollow" class="app_zindex">{vb:rawphrase delete}</a>
+            </vb:if>
+        </div>
+    </div>
+    <vb:if condition="$show['app_editing_options']">
+        <div id="save_button_wrap" class="button_container">
+            <input id="app_save_button" class="button" type="button" name="submit" value="{vb:rawphrase app_save}" disabled="disabled" onclick="pictureManager.savePicture();">
+        </div>
+    </vb:if>
+<script type="text/javascript">
+<!--
+    var app_img_width = {vb:raw width};
+    var app_img_height = {vb:raw height};
+<vb:if condition="$show['app_editing_options']">
+    var app_sel_top = {vb:raw top};
+    var app_sel_left = {vb:raw left};
+    var app_sel_width = {vb:raw sel_width};
+    var app_sel_height = {vb:raw sel_height};
+    var app_min_length = {vb:raw min_length};
+<vb:else />
+    APP_CenterImage({vb:raw width});
+</vb:if>
+// -->
+</script>
+</div>]]></template>
+		<template name="app_init_js" templatetype="template" date="1296457940" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
+<!--
+    pictureManager.initPicture();
+//-->
+</script>]]></template>
+		<template name="app_init_postdata" templatetype="template" date="1298269398" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
+
+<!--
+
+    var app_postids = {vb:raw app_postids};
+    var app_path = {vb:raw app_path};
+    APP_Init_BigPics('posts');
+//-->
+
+</script>]]></template>
+		<template name="app_js" templatetype="template" date="1297757592" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo.js?v={vb:raw version}"></script>
+<script type="text/javascript" src="{vb:stylevar yuipath}/connection/connection.js?v={vb:raw vboptions.simpleversion}"></script>
+<script src="{vb:stylevar yuipath}/dragdrop/dragdrop-min.js"></script> 
+<script src="{vb:stylevar yuipath}/element/element-min.js"></script> 
+<!-- Source file for the Resize Utility -->
+<script src="{vb:stylevar yuipath}/resize/resize-min.js"></script>
+<!-- Source file for the ImageCropper Control -->
+<script src="{vb:stylevar yuipath}/imagecropper/imagecropper-min.js"></script>
+
+]]></template>
+		<template name="app_usercp_shell" templatetype="template" date="1296442187" username="admin" version="0.1"><![CDATA[{vb:stylevar htmldoctype}
+<html xmlns="http://www.w3.org/1999/xhtml"<vb:if condition="$vboptions['enablefacebookconnect']"> xmlns:fb="http://www.facebook.com/2008/fbml"</vb:if> dir="{vb:stylevar textdirection}" lang="{vb:stylevar languagecode}" id="vbulletin_html">
+<head>
+	{vb:raw headinclude}
+	<vb:if condition="$vboptions['storecssasfile']">
+		{vb:cssfile usercp-rollup.css}
+		<vb:if condition="$includecss">
+			<vb:each from="includecss" value="file">
+				{vb:cssfile {vb:raw file}}
+			</vb:each>
+		</vb:if>
+	<vb:else />
+		{vb:cssfile attachments.css,forumbits.css,forumdisplay.css,postlist.css,projecttools.css,threadlist.css,usercp.css,{vb:raw includecss}}
+	</vb:if>
+
+	<vb:if condition="THIS_SCRIPT == 'subscription'"><script type="text/javascript" src="clientscript/vbulletin-threadbit.js?v={vb:raw vboptions.simpleversion}"></script></vb:if>
+
+	<!--[if lt IE 8]>
+	<script type="text/javascript" src="clientscript/vbulletin-threadlist-ie.js?v={vb:raw vboptions.simpleversion}"></script>
+	{vb:cssfile forumbits-ie.css,forumdisplay-ie.css,postlist-ie.css,threadlist-ie.css,usercp-ie.css,{vb:raw includeiecss}}
+	<noscript>
+	<style type="text/css">
+	.threadinfo { width:59.9%; }
+	.threadstats { width:15%; }
+	.threadlastpost { width:25%; }
+	</style>
+	</noscript>
+	<![endif]-->
+
+	{vb:raw clientscripts}
+	<title>{vb:raw pagetitle} - {vb:raw vboptions.bbtitle}</title>
+        {vb:raw headinclude_bottom}
+</head>
+<body>
+{vb:raw header}
+{vb:raw navbar}
+<vb:comment>
+<div id="pagetitle">
+	<h1>{vb:raw pagetitle}</h1>
+	<p class="description">{vb:raw pagedescription}</p>
+</div>
+</vb:comment>
+<div id="usercp_content">
+    <div class="cp_content" style="margin-left: 0px;">
+        <div class="blockbody app_contour">
+            <div class="section" style="border:none;">
+                <p class="app_note">{vb:rawphrase app_annotation}</p>
+                {vb:raw HTML}
+            </div>
+        </div>
+    </div>
+</div>
+{vb:raw footer}
+</body>
+</html>]]></template>
+	</templates>
+	<stylevardfns>
+	</stylevardfns>
+	<stylevars>
+	</stylevars>
+	<plugins>
+		<plugin active="1" executionorder="5">
+			<title><![CDATA[Rebuild avatars & profilepics]]></title>
+			<hookname>admin_maintenance</hookname>
+			<phpcode><![CDATA[//Add option to admin maintenance menu
+if ($_REQUEST['do'] == 'chooser')
+{
+    print_form_header('misc', 'rebuildprofileimageavatars');
+    print_table_header($vbphrase['app_rebuild_profile_photo_avatar_thumbnails'], 2, 0);
+    print_input_row($vbphrase['app_number_of_avatars_to_process_per_cycle'], 'perpage', 200);
+    print_yes_no_row($vbphrase['app_include_automatic_javascript_redirect'], 'autoredirect', 1);
+    print_submit_row($vbphrase['app_rebuild_profile_photo_avatar_thumbnails']);
+}
+
+// Rebuild avatars
+if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'autoredirect' => TYPE_BOOL,
+    ));
+
+    if (($memory_limit = ini_size_to_bytes(@ini_get('memory_limit'))) < 128 * 1024 * 1024 AND $memory_limit > 0)
+    {
+        @ini_set('memory_limit', 128 * 1024 * 1024);
+    }
+
+    if ($vbulletin->options['imagetype'] != 'Magick' AND !function_exists('imagetypes'))
+    {
+        print_stop_message('your_version_no_image_support');
+    }
+
+    if (empty($vbulletin->GPC['perpage']))
+    {
+        $vbulletin->GPC['perpage'] = 20;
+    }
+
+    if (!$vbulletin->GPC['startat'])
+    {
+      $firstattach = $db->query_first("SELECT MIN(userid) AS min FROM " . TABLE_PREFIX . "user");
+      $vbulletin->GPC['startat'] = intval($firstattach['min']);
+    }
+
+    $avatars = $db->query_read("
+    SELECT
+      U.userid, U.isbigpicadded, U.bigpicrevision, U.avatarid, U.avatarrevision, U.profilepicrevision
+      B.sel_width AS `SelWidth`,B.sel_height AS `SelHeight`,B.top AS `Top`, B.left AS `Left`
+    FROM
+                " . TABLE_PREFIX . "user             AS U
+      LEFT JOIN " . TABLE_PREFIX . "custombigpic     AS B ON( B.userid = U.userid )
+    WHERE
+      U.userid >= " . $vbulletin->GPC['startat'] . " AND U.isbigpicadded = 1
+    ORDER BY
+      U.userid
+    LIMIT
+      " . $vbulletin->GPC['perpage']
+    );
+
+    $finishat = $vbulletin->GPC['startat'];
+
+    while ($avatar = $db->fetch_array($avatars))
+    {
+        // if user had predefined avatar - delete it
+        if ($avatar['avatarid'] > 0)
+        {
+            $_userinfo = fetch_userinfo($avatar['userid']);
+            $userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
+            $userdata->set_existing($_userinfo);
+            $userdata->set('avatarid', 0);
+            $userdata->save();
+
+            unset($userdata);
+        }
+
+        require_once DIR . '/includes/class_advanced_profile_photo.php';
+        $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$avatar['userid']."_".$avatar['bigpicrevision'].".jpg";
+
+        $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
+        $img_editor->generate_avatar($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
+        $img_editor->generate_profilepic($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
+        unset($img_editor);
+
+        vbflush();
+
+        $finishat = ($avatar['userid'] > $finishat ? $avatar['userid'] : $finishat);
+        unset($_userinfo);
+    }
+
+    $finishat++;
+    if ($checkmore = $db->query_first("SELECT userid FROM " . TABLE_PREFIX . "user WHERE userid >= $finishat LIMIT 1"))
+    {
+        if ($vbulletin->GPC['autoredirect'] == 1)
+        {
+            print_cp_redirect("misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=rebuildprofileimageavatars&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . "&amp;autoredirect=1");
+        }
+        echo "<p><a href=\"misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=rebuildprofileimageavatars&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . '">' . $vbphrase['click_here_to_continue_processing'] . "</a></p>";
+    }
+    else
+    {
+        define('CP_REDIRECT', 'misc.php');
+        print_stop_message('rebuilt_avatar_thumbnails_successfully');
+    }
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Moderate profile photos</title>
+			<hookname>admin_maintenance</hookname>
+			<phpcode><![CDATA[// Add option to admin maintenance menu
+if ($_REQUEST['do'] == 'chooser')
+{
+    print_form_header('misc', 'removesmallprofilephoto');
+    print_table_header($vbphrase['app_remove_small_profile_photo'], 2, 0);
+    print_input_row($vbphrase['app_number_of_profilepic_to_process_per_cycle'], 'perpage', 100);
+    print_submit_row($vbphrase['app_remove_small_profile_photo']);
+}
+// Form photos list
+if ($_REQUEST['do'] == 'removesmallprofilephoto')
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'perpage' => TYPE_INT,
+        'lastid' => TYPE_INT,
+        'todeletelist' => TYPE_ARRAY,
+    ));
+    if (!empty($vbulletin->GPC['todeletelist']))
+    {
+        foreach ($vbulletin->GPC['todeletelist'] as $user_id)
+        {
+            $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
+            $userpic->condition = "userid = " . $user_id;
+            $userpic->delete();
+
+            $userpic =& datamanager_init('Userpic_Avatar', $vbulletin, ERRTYPE_STANDARD, 'userpic');
+            $userpic->condition = 'userid = ' . $user_id;
+            $userpic->delete();
+
+            $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $user_id);
+
+            // mark file as removed in the user table
+            $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0 WHERE userid = ". $user_id);
+            $userinfo = fetch_userinfo($user_id);
+            @unlink($vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$user_id."_".$userinfo['bigpicrevision'].".jpg");
+            echo 'Deleted profile photo and avatar for user_id =' . $user_id;
+            echo '<br />';
+        }
+        echo '<hr />';
+    }
+    $sql ="SELECT
+              U.userid,
+              U.username
+            FROM
+                " . TABLE_PREFIX . "user             AS U
+            LEFT JOIN
+                " . TABLE_PREFIX . "customprofilepic AS P ON (P.userid = U.userid)
+            WHERE P.width > 0";
+    if ($vbulletin->GPC['lastid'] > 0)
+    {
+        $sql .= "  AND U.userid < " . $vbulletin->GPC['lastid'];
+    }
+    $sql .= "
+            ORDER BY
+                U.userid DESC
+            LIMIT
+                " . $vbulletin->GPC['perpage'];
+    $profilepics = $db->query_read($sql);
+    print_form_header('misc', 'removesmallprofilephoto');
+    $i = 0;
+    while ($profilepic = $db->fetch_array($profilepics))
+    {
+        $userinfo = fetch_userinfo($profilepic['userid']);
+        cache_permissions($userinfo);
+        $img_src = '../' .$vbulletin->options['profilepicurl'] . '/profilepic' . $profilepic['userid'] . '_' . $userinfo['profilepicrevision'] . '.gif';
+        echo '<input type="checkbox" name="todeletelist['. $i.']" value="'. $profilepic['userid'] . '" />';
+        echo '   <img src="'. $img_src . '" />';
+        echo '   <a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $profilepic['username'] . '</a>';
+        echo '<br><br>';
+        $i++;
+    }
+    if (0 < $i)
+    {
+        echo '<input type="hidden" name="lastid" value="'. $userinfo['userid'] . '" />';
+        echo '<input type="hidden" name="perpage" value="'. $vbulletin->GPC['perpage'] . '" />';
+        echo '<input type="submit" value="Next" />';
+    }
+    else
+    {
+        echo '<h1>The end</h1>';
+    }
+    echo '</form>';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Display avatar preview</title>
+			<hookname>ajax_complete</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'crop_avatar')
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'top' => TYPE_UINT,
+        'left' => TYPE_UINT,
+        'height' => TYPE_UINT,
+        'width' => TYPE_UINT
+    ));
+    require_once DIR . '/includes/class_advanced_profile_photo.php';
+    $left = ($vbulletin->GPC['left'] < 0 ) ? 0 : $vbulletin->GPC['left'];
+    $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
+    $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto::MAX_HEIGHT) ? vB_AdvancedProfilePhoto::MAX_HEIGHT : $vbulletin->GPC['height'];
+    $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto::MAX_WIDTH) ? vB_AdvancedProfilePhoto::MAX_WIDTH : $vbulletin->GPC['width'];
+
+    $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+    $img_editor = new vB_AdvancedProfilePhoto($target_path);
+    $img_editor->img_resize($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $width, $height);
+    //$img_editor->unshar_pmask(UNSHARP_MASK_AMOUNT, UNSHARP_MASK_RADIUS, UNSHARP_MASK_THRESHOLD);
+    $img_editor->round_corner($vbulletin->options['app_corners_radius']);
+
+    header("Content-type: image/png");
+    echo $img_editor->save_content();
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Upload and resize big profile pic</title>
+			<hookname>ajax_complete</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'upload_picture')
+{
+    $destination_folder = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR;
+    $target_path = $destination_folder . TIMENOW . basename( $_FILES['upload']['name']);
+    if(move_uploaded_file($_FILES['upload']['tmp_name'], $target_path))
+    {
+        require_once DIR . '/includes/class_advanced_profile_photo.php';
+        $img_editor = new vB_AdvancedProfilePhoto();
+        $status = $img_editor->load_img_from_src_file($target_path);
+        if (!$status)
+        {
+            @unlink($target_path);
+            standard_error(fetch_error('upload_invalid_image'));
+        }
+
+        $min_length = $vbulletin->options['app_avatar_size'];
+        if ($img_editor->get_width() < $min_length OR $img_editor->get_height() < $min_length)
+        {
+            @unlink($target_path);
+            standard_error(fetch_error('app_image_too_small',$min_length));
+        }
+
+        // if user already has profile pic - delete it. avatar and big pic will be deleted automatically
+        if ($profilepic = $db->query_first("SELECT userid, dateline, height, width
+                                            FROM " . TABLE_PREFIX . "customprofilepic
+                                            WHERE userid = " . $vbulletin->userinfo['userid']))
+        {
+            $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
+            $userpic->condition = "userid = " . $vbulletin->userinfo['userid'];
+            $userpic->delete();
+        }
+
+        // if user had predefined avatar - delete it
+        if ($vbulletin->userinfo['avatarid'] > 0)
+        {
+            $userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
+            $userdata->set_existing($_userinfo);
+            $userdata->set('avatarid', 0);
+            $userdata->save();
+            unset($userdata);
+        }
+
+        $img_height = $img_editor->get_height();
+        $img_width = $img_editor->get_width();
+        if ($img_width > vB_AdvancedProfilePhoto::MAX_WIDTH OR $img_height > vB_AdvancedProfilePhoto::MAX_HEIGHT)
+        {
+            $img_editor->img_resize(vB_AdvancedProfilePhoto::MAX_WIDTH, vB_AdvancedProfilePhoto::MAX_HEIGHT);
+        }
+
+        $selection_width = $min_length;
+        if ($img_width < $min_length)
+        {
+            $selection_width = $img_width;
+        }
+
+        $selection_height = $min_length;
+        if ($img_height < $min_length)
+        {
+            $selection_height = $img_height;
+        }
+
+        $new_path = $destination_folder. $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg";
+        $img_editor->save_to_file($new_path);
+        @unlink($target_path);
+
+        // change revision of uploaded file
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `bigpicrevision` = ". ($vbulletin->userinfo['bigpicrevision'] + 1) ."
+                                     WHERE userid = ". $vbulletin->userinfo['userid']);
+
+        // store data about the file
+        $vbulletin->db->query_write("REPLACE INTO " . TABLE_PREFIX . "custombigpic
+                                     SET `userid` = " . $vbulletin->userinfo['userid'] .",`width`= ". $img_editor->get_width() .", `height` = ". $img_editor->get_height());
+
+        $show['app_editing_options'] = true;
+        $templater = vB_Template::create('app_edit_picture');
+        $templater->register('path', $destination_folder. $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg");
+        // create response for ajax
+        require_once(DIR . '/includes/class_xml.php');
+
+        $xml = new vB_AJAX_XML_Builder($vbulletin, 'text/xml');
+        $xml->add_group('image_data');
+        $xml->add_tag('image_html', $templater->render());
+        $xml->add_tag('width', $img_editor->get_width());
+        $xml->add_tag('height', $img_editor->get_height());
+        $xml->add_tag('top', 0);
+        $xml->add_tag('left', 0);
+        $xml->add_tag('sel_width', $selection_width);
+        $xml->add_tag('sel_height', $selection_height);
+        $xml->add_tag('min_length', $min_length);     
+        $xml->close_group();
+        $xml->print_xml(); 
+    }
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Cache templates</title>
+			<hookname>cache_templates</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
+{
+    $cache[] = 'app_usercp_shell';
+    $cache[] = 'app_edit_picture';
+    $cache[] = 'app_js';
+    $cache[] = 'app_css';
+    $cache[] = 'app_init_js';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Save pictures</title>
+			<hookname>misc_start</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'save_picture')
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'top' => TYPE_UINT,
+        'left' => TYPE_UINT,
+        'height' => TYPE_UINT,
+        'width' => TYPE_UINT
+    ));
+
+    require_once DIR . '/includes/class_advanced_profile_photo.php';
+    // safety checks
+    $left = ($vbulletin->GPC['left'] < 0 ) ? 0 : $vbulletin->GPC['left'];
+    $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
+    $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto_Store::MAX_HEIGHT) ? vB_AdvancedProfilePhoto_Store::MAX_HEIGHT : $vbulletin->GPC['height'];
+    $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto_Store::MAX_WIDTH) ? vB_AdvancedProfilePhoto_Store::MAX_WIDTH : $vbulletin->GPC['width'];
+    $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+
+    $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
+    $img_editor->generate_avatar($vbulletin->userinfo['userid'], $vbulletin->userinfo['avatarrevision'], $width, $height, $left, $top);
+    $img_editor->generate_profilepic($vbulletin->userinfo['userid'], $vbulletin->userinfo['profilepicrevision'], $width, $height, $left, $top);
+    $img_editor->generate_bigpicdata($width, $height, $left, $top);
+    unset($img_editor);
+
+    eval(print_standard_redirect('redirect_updatethanks', true, true));
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Insert js and css</title>
+			<hookname>parse_templates</hookname>
+			<phpcode><![CDATA[if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
+{
+    //define product version and assign it to JS version
+    define('APP_VERSION', '0.1');
+    $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
+    $templater = vB_Template::create('app_js');
+    $templater->register('version', $version);
+    $template_hook['headinclude_javascript'] .= $templater->render();
+
+    $templater = vB_Template::create('app_css');
+    $templater->register('min_size', $vbulletin->options['app_profile_size']);
+    $templater ->register('radius', $vbulletin->options['app_corners_radius']);
+    $template_hook['headinclude_bottom_css'] .= $templater->render();
+
+    $templater = vB_Template::create('app_init_js');
+    $template_hook['footer_javascript'] .= $templater->render();
+}
+
+if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->templatecache))
+{
+    $search = '<!-- scripts for quick reply and quick edit -->';
+    $replace = '$final_rendered .= $template_hook[\'app_init_postdata\'];' . $search;
+    $vbulletin->templatecache['SHOWTHREAD'] = str_replace($search, $replace, $vbulletin->templatecache['SHOWTHREAD']); 
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Parse templates</title>
+			<hookname>profile_complete</hookname>
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'editprofilepic')
+{
+    global $shelltemplatename;
+    $shelltemplatename = 'app_usercp_shell';
+
+    global $page_templater;
+    $page_templater = vB_Template::create('app_edit_picture');
+    $img_path = '';
+    $bigpic = $db->query_first("SELECT `top`, `left`, `sel_width`, `sel_height`, `width`, `height`
+			FROM " . TABLE_PREFIX . "custombigpic
+			WHERE userid = " . $vbulletin->userinfo['userid']);
+    if ($show['profilepic'] AND $bigpic)
+    {
+        $show['app_editing_options'] = true;
+        $img_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+        
+        $page_templater->register('top', $bigpic["top"]);
+        $page_templater->register('left', $bigpic["left"]);
+        $page_templater->register('width', $bigpic["width"]);
+        $page_templater->register('height', $bigpic["height"]);
+
+        $sel_width = $bigpic["sel_width"];
+        if ($sel_width == 0)
+        {
+            $sel_width = $vbulletin->options['app_avatar_size'];
+        }
+        $sel_height = $bigpic["sel_height"];
+        if ($sel_height == 0)
+        {
+            $sel_height = $vbulletin->options['app_avatar_size'];
+        }
+        $page_templater->register('sel_width', $sel_width);
+        $page_templater->register('sel_height', $sel_height);
+        $page_templater->register('min_length', $vbulletin->options['app_avatar_size']);
+    }
+    else
+    {
+        $show['app_editing_options'] = false;
+        $show['app_script_var'] = false;
+        $img_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR."unknown.jpg";
+        $imgsize = getimagesize($img_path);
+        $page_templater->register('width', $imgsize[0]);
+        $page_templater->register('height', $imgsize[1]);
+    }
+
+    $page_templater->register("path", $img_path);
+}]]></phpcode>
+		</plugin>
+		<plugin active="0" executionorder="5">
+			<title>Init post ids</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[$template_hook['app_init_postdata'] = ;]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Init post ids for big pics</title>
+			<hookname>showthread_postbit_create</hookname>
+			<phpcode><![CDATA[global $postids_with_big_pic;
+
+if (!isset($postids_with_big_pic))
+{
+    $postids_with_big_pic = array();
+}
+
+if ($post['isbigpicadded'])
+{
+    $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$post['userid']."_".$post['bigpicrevision'].".jpg";;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Delete avatar and source img on profile pic deletion</title>
+			<hookname>userpicdata_delete</hookname>
+			<phpcode><![CDATA[if( $this->table == 'customprofilepic' )
+{
+    global $vbulletin;
+
+    $userpic =& datamanager_init('Userpic_Avatar', $vbulletin, ERRTYPE_STANDARD, 'userpic');
+    $userpic->condition = $this->condition;
+    $userpic->delete();
+
+    $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $vbulletin->userinfo['userid']);
+
+    // mark file as removed in the user table
+    $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0 WHERE userid = ". $vbulletin->userinfo['userid']);
+    @unlink($vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$this->fetch_field('userid')."_".$vbulletin->userinfo['bigpicrevision'].".jpg");
+}]]></phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+		<phrasetype name="Error Messages" fieldname="error">
+			<phrase name="app_image_too_small" date="1297758634" username="Jannie" version=""><![CDATA[Image too small. It should be at least {1}x{1} pixels.]]></phrase>
+		</phrasetype>
+		<phrasetype name="GLOBAL" fieldname="global">
+			<phrase name="app_allow_fullsize" date="1297758574" username="Jannie" version=""><![CDATA[I allow to show full size photo where possible]]></phrase>
+			<phrase name="app_annotation" date="1297758585" username="Jannie" version=""><![CDATA[<span style="color:red;">ATTENTION!</span> You can upload your own photo here. It will be shown as avatars and so on. Only real photos acceptable. After upload select face area, it should be well seen. Any other content violates forum rules.]]></phrase>
+			<phrase name="app_confirm_photo" date="1297758620" username="Jannie" version=""><![CDATA[I confirm, this photo is mine]]></phrase>
+			<phrase name="app_confirm_photo_face" date="1297758598" username="Jannie" version=""><![CDATA[I confirm, that selected my face]]></phrase>
+			<phrase name="app_result" date="1297758561" username="Jannie" version=""><![CDATA[result:]]></phrase>
+			<phrase name="app_save" date="1297758610" username="Jannie" version=""><![CDATA[Save]]></phrase>
+		</phrasetype>
+		<phrasetype name="Maintenance Tools" fieldname="maintenance">
+			<phrase name="app_include_automatic_javascript_redirect" date="1297746847" username="admin" version=""><![CDATA[Include automatic javascript redirect]]></phrase>
+			<phrase name="app_list_of_small_profile_photo" date="1296528391" username="admin" version=""><![CDATA[List of small profile photo]]></phrase>
+			<phrase name="app_number_of_profilepic_to_process_per_cycle" date="1296528418" username="admin" version=""><![CDATA[Number of profile picture to process per cycle]]></phrase>
+			<phrase name="app_rebuild_profile_photo_avatar_thumbnails" date="1297752731" username="Jannie" version=""><![CDATA[Rebuild Profile Photo Avatar Thumbnails]]></phrase>
+			<phrase name="app_remove_small_profile_photo" date="1296528487" username="admin" version=""><![CDATA[Remove small profile photo]]></phrase>
+		</phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_app_avatar_size_desc" date="1297759283" username="Vitaly" version="0.1"><![CDATA[Enter avatar size (max height/width) in pixels.]]></phrase>
+			<phrase name="setting_app_avatar_size_title" date="1297759283" username="Vitaly" version="0.1"><![CDATA[Generated avatar size]]></phrase>
+			<phrase name="setting_app_corners_radius_desc" date="1297759394" username="Vitaly" version="0.1"><![CDATA[Set 0 to disable.]]></phrase>
+			<phrase name="setting_app_corners_radius_title" date="1297759394" username="Vitaly" version="0.1"><![CDATA[Avatar corners radius, pixels]]></phrase>
+			<phrase name="setting_app_img_folder_desc" date="1297759337" username="Vitaly" version="0.1"><![CDATA[Folder to store uploaded big pictures. This file path should be readable AND writeable by your web server (usually chmod 0777).]]></phrase>
+			<phrase name="setting_app_img_folder_title" date="1297759337" username="Vitaly" version="0.1"><![CDATA[Custom folder for big profile images]]></phrase>
+			<phrase name="setting_app_profile_size_desc" date="1297759563" username="Jannie" version="0.1"><![CDATA[Enter profile picture size (max height/width) in pixels.]]></phrase>
+			<phrase name="setting_app_profile_size_title" date="1297759563" username="Jannie" version="0.1"><![CDATA[Generated profilepic size]]></phrase>
+			<phrase name="setting_app_selection_change_desc" date="1297759473" username="Jannie" version="0.1"><![CDATA[Selection is changed by jerks when you start it from the smallest value. This is done for better picture resizing. Please specify several steps in pixels.]]></phrase>
+			<phrase name="setting_app_selection_change_title" date="1297759473" username="Jannie" version="0.1"><![CDATA[Selection change]]></phrase>
+			<phrase name="settinggroup_app_settings" date="1294637173" username="admin" version="0.1"><![CDATA[Profile & avatar editing]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="app_settings" displayorder="65535">
+			<setting varname="app_img_folder" displayorder="5">
+				<datatype>free</datatype>
+				<defaultvalue>./custombigprofilepics</defaultvalue>
+			</setting>
+			<setting varname="app_avatar_size" displayorder="10">
+				<datatype>posint</datatype>
+				<defaultvalue>120</defaultvalue>
+			</setting>
+			<setting varname="app_profile_size" displayorder="20">
+				<datatype>posint</datatype>
+				<defaultvalue>120</defaultvalue>
+			</setting>
+			<setting varname="app_corners_radius" displayorder="40">
+				<datatype>posint</datatype>
+				<defaultvalue>5</defaultvalue>
+			</setting>
+			<setting varname="app_selection_change" displayorder="50">
+				<datatype>free</datatype>
+				<defaultvalue>120,130,140</defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+	<templateedits>
+	</templateedits>
+</product>
