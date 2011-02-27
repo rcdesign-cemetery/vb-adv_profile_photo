@@ -184,7 +184,7 @@ $db->show_errors();]]></installcode>
     z-index:3;
 }
 </style>]]></template>
-		<template name="app_edit_picture" templatetype="template" date="1297757709" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_edit_picture" templatetype="template" date="1298609863" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
             <img id='avatar_img_crop' src="{vb:raw path}" />
@@ -192,7 +192,7 @@ $db->show_errors();]]></installcode>
     </vb:if>
     <div style="overflow:hidden;">
         <div class="source_image_wrapper" id="avatar_img_wrap">
-            <img src="{vb:raw path}" id="avatar_img" />
+            <img src="<vb:if condition="$show['app_editing_options']">{vb:raw path}<vb:else />{vb:stylevar imgdir_misc}/profile_nopic.jpg</vb:if>" id="avatar_img" />
             <vb:if condition="$show['app_editing_options']">
                 <div class="app_resize_mask"></div>
                 <div id="app_resize" class="app_resize"></div>
@@ -385,7 +385,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
 
     while ($avatar = $db->fetch_array($avatars))
     {
-        // if user had predefined avatar - delete it
+        // if user has predefined avatar (not custom) - delete it
         if ($avatar['avatarid'] > 0)
         {
             $_userinfo = fetch_userinfo($avatar['userid']);
@@ -398,11 +398,18 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
         }
 
         require_once DIR . '/includes/class_advanced_profile_photo.php';
-        $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$avatar['userid']."_".$avatar['bigpicrevision'].".jpg";
+        $target_path = $vbulletin->options['app_img_folder']."/".$avatar['userid']."_".$avatar['bigpicrevision'].".jpg";
 
         $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
-        $img_editor->generate_avatar($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
-        $img_editor->generate_profilepic($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
+        if ($img_editor)
+        {
+            $img_editor->generate_avatar($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
+            $img_editor->generate_profilepic($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
+        }
+        else
+        {
+            error_log("Unable to open user ". $avatar['userid'] ." big pic on path " . $target_path);
+        }
         unset($img_editor);
 
         vbflush();
@@ -453,17 +460,6 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
             $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
             $userpic->condition = "userid = " . $user_id;
             $userpic->delete();
-
-            $userpic =& datamanager_init('Userpic_Avatar', $vbulletin, ERRTYPE_STANDARD, 'userpic');
-            $userpic->condition = 'userid = ' . $user_id;
-            $userpic->delete();
-
-            $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $user_id);
-
-            // mark file as removed in the user table
-            $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0 WHERE userid = ". $user_id);
-            $userinfo = fetch_userinfo($user_id);
-            @unlink($vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$user_id."_".$userinfo['bigpicrevision'].".jpg");
             echo 'Deleted profile photo and avatar for user_id =' . $user_id;
             echo '<br />';
         }
@@ -516,7 +512,7 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 		<plugin active="1" executionorder="5">
 			<title>Display avatar preview</title>
 			<hookname>ajax_complete</hookname>
-			<phpcode><![CDATA[if ($_REQUEST['do'] == 'crop_avatar')
+			<phpcode><![CDATA[if ($_REQUEST['do'] == 'crop_avatar' AND $show['member'])
 {
     $vbulletin->input->clean_array_gpc('r', array(
         'top' => TYPE_UINT,
@@ -530,56 +526,56 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
     $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto::MAX_HEIGHT) ? vB_AdvancedProfilePhoto::MAX_HEIGHT : $vbulletin->GPC['height'];
     $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto::MAX_WIDTH) ? vB_AdvancedProfilePhoto::MAX_WIDTH : $vbulletin->GPC['width'];
 
-    $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+    $target_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
     $img_editor = new vB_AdvancedProfilePhoto($target_path);
-    $img_editor->img_resize($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $width, $height);
-    //$img_editor->unshar_pmask(UNSHARP_MASK_AMOUNT, UNSHARP_MASK_RADIUS, UNSHARP_MASK_THRESHOLD);
-    $img_editor->round_corner($vbulletin->options['app_corners_radius']);
+    if ($img_editor)
+    {
+        $img_editor->img_resize($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $width, $height);
+        $img_editor->unshar_pmask(UNSHARP_MASK_AMOUNT, UNSHARP_MASK_RADIUS, UNSHARP_MASK_THRESHOLD);
+        $img_editor->round_corner($vbulletin->options['app_corners_radius']);
 
-    header("Content-type: image/png");
-    echo $img_editor->save_content();
+        header("Content-type: image/png");
+        echo $img_editor->get_img_binary();
+    }
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Upload and resize big profile pic</title>
 			<hookname>ajax_complete</hookname>
-			<phpcode><![CDATA[if ($_POST['do'] == 'upload_picture')
+			<phpcode><![CDATA[if ($_POST['do'] == 'upload_picture' AND $show['member'])
 {
-    $destination_folder = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR;
+    $destination_folder = $vbulletin->options['app_img_folder']."/";
     $target_path = $destination_folder . TIMENOW . basename( $_FILES['upload']['name']);
     if(move_uploaded_file($_FILES['upload']['tmp_name'], $target_path))
     {
         require_once DIR . '/includes/class_advanced_profile_photo.php';
-        $img_editor = new vB_AdvancedProfilePhoto();
-        $status = $img_editor->load_img_from_src_file($target_path);
-        if (!$status)
+        $img_editor = new vB_AdvancedProfilePhoto($target_path);
+        if (!$img_editor)
         {
             @unlink($target_path);
             standard_error(fetch_error('upload_invalid_image'));
         }
 
-        $min_length = $vbulletin->options['app_avatar_size'];
-        if ($img_editor->get_width() < $min_length OR $img_editor->get_height() < $min_length)
+        $min_size = $vbulletin->options['app_avatar_size'];
+        if ($img_editor->get_width() < $min_size OR $img_editor->get_height() < $min_size)
         {
             @unlink($target_path);
-            standard_error(fetch_error('app_image_too_small',$min_length));
+            standard_error(fetch_error('app_image_too_small',$min_size));
         }
 
-        // if user already has profile pic - delete it. avatar and big pic will be deleted automatically
-        if ($profilepic = $db->query_first("SELECT userid, dateline, height, width
-                                            FROM " . TABLE_PREFIX . "customprofilepic
-                                            WHERE userid = " . $vbulletin->userinfo['userid']))
-        {
-            $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
-            $userpic->condition = "userid = " . $vbulletin->userinfo['userid'];
-            $userpic->delete();
-        }
+        $selection_width = $min_size;
+        $selection_height = $min_size;
+
+        // delete old profile pic (avatar and big pic would be deleted automatically)
+        $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
+        $userpic->condition = "userid = " . $vbulletin->userinfo['userid'];
+        $userpic->delete();
 
         // if user had predefined avatar - delete it
         if ($vbulletin->userinfo['avatarid'] > 0)
         {
             $userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
-            $userdata->set_existing($_userinfo);
+            $userdata->set_existing($vbulletin->userinfo);
             $userdata->set('avatarid', 0);
             $userdata->save();
             unset($userdata);
@@ -590,18 +586,6 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         if ($img_width > vB_AdvancedProfilePhoto::MAX_WIDTH OR $img_height > vB_AdvancedProfilePhoto::MAX_HEIGHT)
         {
             $img_editor->img_resize(vB_AdvancedProfilePhoto::MAX_WIDTH, vB_AdvancedProfilePhoto::MAX_HEIGHT);
-        }
-
-        $selection_width = $min_length;
-        if ($img_width < $min_length)
-        {
-            $selection_width = $img_width;
-        }
-
-        $selection_height = $min_length;
-        if ($img_height < $min_length)
-        {
-            $selection_height = $img_height;
         }
 
         $new_path = $destination_folder. $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg";
@@ -647,36 +631,18 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
     $cache[] = 'app_js';
     $cache[] = 'app_css';
     $cache[] = 'app_init_js';
+}
+
+if (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'upload_picture' AND $show['member'])
+{
+    $cache[] = 'app_edit_picture';
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
-			<title>Save pictures</title>
-			<hookname>misc_start</hookname>
-			<phpcode><![CDATA[if ($_POST['do'] == 'save_picture')
-{
-    $vbulletin->input->clean_array_gpc('r', array(
-        'top' => TYPE_UINT,
-        'left' => TYPE_UINT,
-        'height' => TYPE_UINT,
-        'width' => TYPE_UINT
-    ));
-
-    require_once DIR . '/includes/class_advanced_profile_photo.php';
-    // safety checks
-    $left = ($vbulletin->GPC['left'] < 0 ) ? 0 : $vbulletin->GPC['left'];
-    $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
-    $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto_Store::MAX_HEIGHT) ? vB_AdvancedProfilePhoto_Store::MAX_HEIGHT : $vbulletin->GPC['height'];
-    $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto_Store::MAX_WIDTH) ? vB_AdvancedProfilePhoto_Store::MAX_WIDTH : $vbulletin->GPC['width'];
-    $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
-
-    $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
-    $img_editor->generate_avatar($vbulletin->userinfo['userid'], $vbulletin->userinfo['avatarrevision'], $width, $height, $left, $top);
-    $img_editor->generate_profilepic($vbulletin->userinfo['userid'], $vbulletin->userinfo['profilepicrevision'], $width, $height, $left, $top);
-    $img_editor->generate_bigpicdata($width, $height, $left, $top);
-    unset($img_editor);
-
-    eval(print_standard_redirect('redirect_updatethanks', true, true));
-}]]></phpcode>
+			<title>Deny avatar edit from menu</title>
+			<hookname>global_bootstrap_complete</hookname>
+			<phpcode><![CDATA[global $show;
+$show['avatarlink'] = false;]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Insert js and css</title>
@@ -707,7 +673,7 @@ if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->t
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
-			<title>Parse templates</title>
+			<title>Replace profile templates</title>
 			<hookname>profile_complete</hookname>
 			<phpcode><![CDATA[if ($_REQUEST['do'] == 'editprofilepic')
 {
@@ -720,10 +686,12 @@ if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->t
     $bigpic = $db->query_first("SELECT `top`, `left`, `sel_width`, `sel_height`, `width`, `height`
 			FROM " . TABLE_PREFIX . "custombigpic
 			WHERE userid = " . $vbulletin->userinfo['userid']);
+
+    // display big pic only when its exist and user has profile pic
     if ($show['profilepic'] AND $bigpic)
     {
         $show['app_editing_options'] = true;
-        $img_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+        $img_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
         
         $page_templater->register('top', $bigpic["top"]);
         $page_templater->register('left', $bigpic["left"]);
@@ -747,14 +715,54 @@ if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->t
     else
     {
         $show['app_editing_options'] = false;
-        $show['app_script_var'] = false;
-        $img_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR."unknown.jpg";
-        $imgsize = getimagesize($img_path);
+        $imgsize = getimagesize("images/misc/profile_nopic.jpg");
+        // DON'T REMOVE. We are sending width to template to center div.
+        // Later this width would be changed with new uploaded image (by AJAX). That is why we don't hardcode width in css
         $page_templater->register('width', $imgsize[0]);
         $page_templater->register('height', $imgsize[1]);
     }
 
     $page_templater->register("path", $img_path);
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deny avatar edit</title>
+			<hookname>profile_start</hookname>
+			<phpcode><![CDATA[if (($_POST['do'] == 'updateavatar') OR ($_REQUEST['do'] == 'editavatar'))
+{
+    $vbulletin->options['avatarenabled'] = false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Save pictures</title>
+			<hookname>profile_start</hookname>
+			<phpcode><![CDATA[if ($_POST['do'] == 'save_picture' AND $show['member'])
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'top' => TYPE_UINT,
+        'left' => TYPE_UINT,
+        'height' => TYPE_UINT,
+        'width' => TYPE_UINT
+    ));
+
+    require_once DIR . '/includes/class_advanced_profile_photo.php';
+    // safety checks
+    $left = ($vbulletin->GPC['left'] < 0 ) ? 0 : $vbulletin->GPC['left'];
+    $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
+    $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto_Store::MAX_HEIGHT) ? vB_AdvancedProfilePhoto_Store::MAX_HEIGHT : $vbulletin->GPC['height'];
+    $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto_Store::MAX_WIDTH) ? vB_AdvancedProfilePhoto_Store::MAX_WIDTH : $vbulletin->GPC['width'];
+    $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+
+    $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
+    if ($img_editor)
+    {
+        $img_editor->generate_avatar($vbulletin->userinfo['userid'], $vbulletin->userinfo['avatarrevision'], $width, $height, $left, $top);
+        $img_editor->generate_profilepic($vbulletin->userinfo['userid'], $vbulletin->userinfo['profilepicrevision'], $width, $height, $left, $top);
+        $img_editor->generate_bigpicdata($width, $height, $left, $top);
+    }
+    unset($img_editor);
+
+    eval(print_standard_redirect('redirect_updatethanks', true, true));
 }]]></phpcode>
 		</plugin>
 		<plugin active="0" executionorder="5">
@@ -788,11 +796,18 @@ if ($post['isbigpicadded'])
     $userpic->condition = $this->condition;
     $userpic->delete();
 
-    $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $vbulletin->userinfo['userid']);
+    while ($user = $this->registry->db->fetch_array($users))
+    {
+        $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $this->fetch_field('userid'));
 
-    // mark file as removed in the user table
-    $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0 WHERE userid = ". $vbulletin->userinfo['userid']);
-    @unlink($vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$this->fetch_field('userid')."_".$vbulletin->userinfo['bigpicrevision'].".jpg");
+        // mark file as removed in the user table
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0 WHERE userid = ". $this->fetch_field('userid'));
+
+        if($result = $vbulletin->db->query_first("SELECT bigpicrevision FROM " . TABLE_PREFIX . "user WHERE userid = ". $this->fetch_field('userid')))
+        {
+           @unlink($vbulletin->options['app_img_folder']."/".$this->fetch_field('userid')."_".$result['bigpicrevision'].".jpg");
+        }
+    }
 }]]></phpcode>
 		</plugin>
 	</plugins>

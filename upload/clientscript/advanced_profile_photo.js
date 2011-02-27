@@ -212,7 +212,7 @@ SECURITYTOKEN + "&top=" + coords.top + "&left=" + coords.left + "&height=" + coo
 
     savePicture: function() {
         var coords = pictureManager.getCoords();
-        var pseudoform = new vB_Hidden_Form('misc.php');
+        var pseudoform = new vB_Hidden_Form('profile.php');
         pseudoform.add_variable('do', "save_picture");
         pseudoform.add_variable('s', fetch_sessionhash());
         pseudoform.add_variable('securitytoken', SECURITYTOKEN);

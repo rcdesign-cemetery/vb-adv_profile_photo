@@ -43,10 +43,13 @@ class vB_AdvancedProfilePhoto
      */
     public function  __construct($src_file=null)
     {
+        $result = true;
         if (!is_null($src_file))
         {
-            $this->load_img_from_src_file($src_file);
+            $result = $this->load_img_from_src_file($src_file);
         }
+
+        return $result;
     }
 
     /**
@@ -94,6 +97,10 @@ class vB_AdvancedProfilePhoto
         $this->_src_height = $size[1];
  
         $this->_gd_src_image = $ic_func($src_file);
+        if (! $this->_gd_src_image)
+        {
+            return false ;
+        }
         return true;
     }
 
@@ -300,8 +307,9 @@ class vB_AdvancedProfilePhoto
      * @param string $output_file
      * @return mixed
      */
-    public function save_content()
+    public function get_img_binary()
     {
+        // imagepng is outputting directly to browser. We are using buffers as we don't need output, we need file contents
         ob_start();
         imagepng($this->_gd_image, null, self::PNG_COMPRESSION, PNG_ALL_FILTERS);
         $result = ob_get_contents();
@@ -521,7 +529,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         $datamanager->set('width', $this->get_width());
         $datamanager->set('height', $this->get_height());
-        $datamanager->setr('filedata', $this->save_content());
+        $datamanager->setr('filedata', $this->get_img_binary());
         $datamanager->set_info('avatarrevision', $avatarrevision);
 
         if (!$datamanager->save())
@@ -532,7 +540,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
     }
 
     /**
-     * Generate profilepic
+     * Generate profile picture
      *
      * @param array $userinfo
      * @param int $sel_width
@@ -558,7 +566,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         $datamanager->set('width', $this->get_width());
         $datamanager->set('height', $this->get_height());
-        $datamanager->setr('filedata', $this->save_content());
+        $datamanager->setr('filedata', $this->get_img_binary());
         $datamanager->set_info('profilepicrevision', $profilepicrevision);
 
         if (!$datamanager->save())
