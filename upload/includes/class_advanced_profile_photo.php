@@ -27,27 +27,23 @@ class vB_AdvancedProfilePhoto
 
     /**
      *
-     * @var source image resource
+     * @var image resource initially loaded in constructor
      */
     protected $_gd_src_image;
 
     /**
      *
-     * @var an image resource
+     * @var image resource on which all operations (resize, round corner etc) are performed
      */
-    protected $_gd_image;
+    protected $_gd_resulting_image;
 
     /**
      *
      * @param string $src_file optional
      */
-    public function  __construct($src_file=null)
+    public function  __construct($src_file)
     {
-        $result = true;
-        if (!is_null($src_file))
-        {
-            $result = $this->load_img_from_src_file($src_file);
-        }
+        $result = $this->load_img_from_src_file($src_file);
 
         return $result;
     }
@@ -58,9 +54,9 @@ class vB_AdvancedProfilePhoto
      */
     public function  __destruct()
     {
-        if ($this->_gd_image)
+        if ($this->_gd_resulting_image)
         {
-            imagedestroy($this->_gd_image);
+            imagedestroy($this->_gd_resulting_image);
         }
 
         if ($this->_gd_src_image)
@@ -82,67 +78,111 @@ class vB_AdvancedProfilePhoto
             return false;
         }
         $this->_src_file = $src_file;
-        $size = getimagesize ( $src_file );
-        if ( $size === false )
+        $image_info = getimagesize ( $src_file );
+        if ($image_info === false)
         {
             return false ;
         }
-        $src_file_format = strtolower ( substr ( $size [ 'mime' ], strpos ( $size [ 'mime' ], '/' )+ 1 ));
-        $ic_func = "imagecreatefrom" . $src_file_format;
-        if (! function_exists ( $ic_func ))
-        {
-            return false;
+
+        switch ($image_info['mime']) {
+            case 'image/gif':
+                if (imagetypes() & IMG_GIF)
+                {
+                    $this->_gd_src_image = imagecreatefromgit($src_file);
+                }
+            break;
+            case 'image/jpeg':
+                if (imagetypes() & IMG_JPG)
+                {
+                    $this->_gd_src_image = imagecreatefromjpeg($src_file);
+                }
+            break;
+            case 'image/png':
+                if (imagetypes() & IMG_PNG)
+                {
+                    $this->_gd_src_image = imageCreateFromPNG($src_file);
+                }
+            break;
         }
-        $this->_src_width = $size[0];
-        $this->_src_height = $size[1];
- 
-        $this->_gd_src_image = $ic_func($src_file);
-        if (! $this->_gd_src_image)
+
+        if (!$this->_gd_src_image)
         {
             return false ;
         }
+
+        $this->_src_width = imagesx($this->_gd_src_image);
+        $this->_src_height = imagesy($this->_gd_src_image);
+
+        // create image we will be working at
+        $this->_gd_resulting_image = imagecreatetruecolor($this->_src_width, $this->_src_height);
+        imagecopy($this->_gd_resulting_image, $this->_gd_src_image, 0, 0, 0, 0, $this->_src_width, $this->_src_height);
+        
         return true;
     }
 
     /**
-     * Resize image
+     * Resize image keeping the aspect ratio.
      *
      * @param int $width
      * @param int $height
      * @return bool
      */
-    public function img_resize ($width, $height, $left=0, $top=0, $src_w=0, $src_h=0)
+    public function img_resize_from_src($width, $height)
     {
-        if (! $this->_gd_src_image)
-        {
-            return false ;
-        }
+        $x_ratio = $width / $this->_src_width;
+        $y_ratio = $height / $this->_src_height;
 
-        $new_width = 0; $new_height = 0;
-        if ($src_w)
-        {
-            $new_width = $width;
-            $new_height = $height;
-        }
-        else
-        {
-            $x_ratio = $width / $this->_src_width;
-            $y_ratio = $height / $this->_src_height;
+        $ratio = min($x_ratio , $y_ratio);
 
-            $ratio = min ( $x_ratio , $y_ratio );
+        $new_width = floor($this->_src_width * $ratio);
+        $new_height = floor($this->_src_height * $ratio);
 
-            $new_width = floor ( $this->_src_width * $ratio );
-            $new_height = floor ( $this->_src_height * $ratio );
-        }
-
-        $gd_temp = imagecreatetruecolor ( $new_width, $new_height );
+        $gd_temp = imagecreatetruecolor($new_width, $new_height);
 
         imagecolortransparent($gd_temp, -1);
 
-        imagefill ( $gd_temp , 0 , 0 , 0xFFFFFF );
-        imagecopyresampled ( $gd_temp, $this->_gd_src_image, 0, 0, $left, $top,
-            $new_width , $new_height , $src_w ? $src_w:$this->_src_width, $src_h? $src_h:$this->_src_height);
-        $this->_gd_image = $gd_temp;
+        imagefill($gd_temp , 0 , 0 , 0xFFFFFF);
+        imagecopyresampled($gd_temp, $this->_gd_src_image, 0, 0, 0, 0, $new_width , $new_height , $this->_src_width, $this->_src_height);
+
+        // destroy old resource
+        if ($this->_gd_resulting_image)
+        {
+            imagedestroy($this->_gd_resulting_image);
+        }
+
+        $this->_gd_resulting_image = $gd_temp;
+
+        return true;
+    }
+
+    /**
+     * Crop part of source image based on selection data, then resize it to specified width/height.
+     * We assume selection data and resulting width/height are proportional, so do not add aspect ratio stuff.
+     *
+     * @param int $width width of resulting image
+     * @param int $height height of resulting image
+     * @param int $left left coord of the selection
+     * @param int $top top coord of the selection
+     * @param int $sel_w selection width
+     * @param int $sel_h selection height
+     * @return bool
+     */
+    public function img_crop_resize_from_src($width, $height, $left, $top, $sel_w, $sel_h)
+    {
+        $gd_temp = imagecreatetruecolor($width, $height);
+
+        imagecolortransparent($gd_temp, -1);
+
+        imagefill($gd_temp , 0 , 0 , 0xFFFFFF);
+        imagecopyresampled($gd_temp, $this->_gd_src_image, 0, 0, $left, $top, $width , $height , $sel_w, $sel_h);
+
+        // destroy old resource
+        if ($this->_gd_resulting_image)
+        {
+            imagedestroy($this->_gd_resulting_image);
+        }
+
+        $this->_gd_resulting_image = $gd_temp;
 
         return true;
     }
@@ -154,7 +194,7 @@ class vB_AdvancedProfilePhoto
      */
     public function get_width()
     {
-        return imagesx($this->_gd_image);
+        return imagesx($this->_gd_resulting_image);
     }
 
     /**
@@ -164,7 +204,7 @@ class vB_AdvancedProfilePhoto
      */
     public function get_height()
     {
-        return imagesy($this->_gd_image);
+        return imagesy($this->_gd_resulting_image);
     }
 
     /**
@@ -184,27 +224,27 @@ class vB_AdvancedProfilePhoto
         $gd_triple_mask = imagecreatetruecolor($radius_x * 6, $radius_y * 6);
         if ($gd_triple_mask)
         {
-            $gd_mask = imagecreatetruecolor(imagesx($this->_gd_image), imagesy($this->_gd_image));
+            $gd_mask = imagecreatetruecolor(imagesx($this->_gd_resulting_image), imagesy($this->_gd_resulting_image));
             if ($gd_mask)
             {
                 $color_transparent = imagecolorallocate($gd_triple_mask, 255, 255, 255);
                 imagefilledellipse($gd_triple_mask, $radius_x * 3, $radius_y * 3, $radius_x * 4, $radius_y * 4, $color_transparent);
-                imagefilledrectangle($gd_mask, 0, 0, imagesx($this->_gd_image), imagesy($this->_gd_image), $color_transparent);
+                imagefilledrectangle($gd_mask, 0, 0, imagesx($this->_gd_resulting_image), imagesy($this->_gd_resulting_image), $color_transparent);
 
                 imagecopyresampled($gd_mask, $gd_triple_mask,
                     0, 0, $radius_x, $radius_y,
                     $radius_x, $radius_y, $radius_x * 2, $radius_y * 2);
 
                 imagecopyresampled($gd_mask, $gd_triple_mask,
-                    0, imagesy($this->_gd_image) - $radius_y, $radius_x, $radius_y * 3,
+                    0, imagesy($this->_gd_resulting_image) - $radius_y, $radius_x, $radius_y * 3,
                     $radius_x, $radius_y, $radius_x * 2, $radius_y * 2);
 
                 imagecopyresampled($gd_mask, $gd_triple_mask,
-                    imagesx($this->_gd_image) - $radius_x, imagesy($this->_gd_image) - $radius_y, $radius_x * 3, $radius_y * 3,
+                    imagesx($this->_gd_resulting_image) - $radius_x, imagesy($this->_gd_resulting_image) - $radius_y, $radius_x * 3, $radius_y * 3,
                     $radius_x, $radius_y, $radius_x * 2, $radius_y * 2);
 
                 imagecopyresampled($gd_mask, $gd_triple_mask,
-                    imagesx($this->_gd_image) - $radius_x, 0, $radius_x * 3, $radius_y,
+                    imagesx($this->_gd_resulting_image) - $radius_x, 0, $radius_x * 3, $radius_y,
                     $radius_x, $radius_y, $radius_x * 2, $radius_y * 2);
 
 
@@ -219,32 +259,32 @@ class vB_AdvancedProfilePhoto
     }
 
     /**
-     * Apply image mask. Used in Recognition_Image_Tools::round_corner($radius)
+     * Apply image mask. Used in vB_AdvancedProfilePhoto round_corner($radius) method
      *
      * @param resource $gd_mask
      * @return bool
      */
     protected function _apply_mask(&$gd_mask)
     {
-        $gd_mask_resized = imagecreatetruecolor(imagesx($this->_gd_image), imagesy($this->_gd_image));
+        $gd_mask_resized = imagecreatetruecolor(imagesx($this->_gd_resulting_image), imagesy($this->_gd_resulting_image));
         if ($gd_mask_resized)
         {
             imagecopyresampled($gd_mask_resized, $gd_mask,
                 0, 0, 0, 0,
-                imagesx($this->_gd_image), imagesy($this->_gd_image), imagesx($gd_mask), imagesy($gd_mask));
+                imagesx($this->_gd_resulting_image), imagesy($this->_gd_resulting_image), imagesx($gd_mask), imagesy($gd_mask));
 
-            $gd_mask_blendtemp = imagecreatetruecolor(imagesx($this->_gd_image), imagesy($this->_gd_image));
+            $gd_mask_blendtemp = imagecreatetruecolor(imagesx($this->_gd_resulting_image), imagesy($this->_gd_resulting_image));
             if ($gd_mask_blendtemp)
             {
                 $color_background = imagecolorallocate($gd_mask_blendtemp, 0, 0, 0);
                 imagefilledrectangle($gd_mask_blendtemp, 0, 0, imagesx($gd_mask_blendtemp), imagesy($gd_mask_blendtemp), $color_background);
                 imagealphablending($gd_mask_blendtemp, false);
                 imagesavealpha($gd_mask_blendtemp, true);
-                for ($x = 0; $x < imagesx($this->_gd_image); $x++)
+                for ($x = 0; $x < imagesx($this->_gd_resulting_image); $x++)
                 {
-                    for ($y = 0; $y < imagesy($this->_gd_image); $y++)
+                    for ($y = 0; $y < imagesy($this->_gd_resulting_image); $y++)
                     {
-                        $pixel = self::get_pixel_color($this->_gd_image, $x, $y);
+                        $pixel = self::get_pixel_color($this->_gd_resulting_image, $x, $y);
                         $mask_pixel = self::grayscale_pixel(self::get_pixel_color($gd_mask_resized, $x, $y));
                         $mask_alpha = 127 - (floor($mask_pixel['red'] / 2) * (1 - ($pixel['alpha'] / 127)));
 
@@ -252,10 +292,10 @@ class vB_AdvancedProfilePhoto
                         imagesetpixel($gd_mask_blendtemp, $x, $y, $newcolor);
                     }
                 }
-                imagealphablending($this->_gd_image, false);
-                imagesavealpha($this->_gd_image, true);
+                imagealphablending($this->_gd_resulting_image, false);
+                imagesavealpha($this->_gd_resulting_image, true);
 
-                imagecopy($this->_gd_image, $gd_mask_blendtemp, 0, 0, 0, 0, imagesx($gd_mask_blendtemp), imagesy($gd_mask_blendtemp));
+                imagecopy($this->_gd_resulting_image, $gd_mask_blendtemp, 0, 0, 0, 0, imagesx($gd_mask_blendtemp), imagesy($gd_mask_blendtemp));
                 imagedestroy($gd_mask_blendtemp);
                 imagedestroy($gd_mask_resized);
                 return true;
@@ -298,7 +338,7 @@ class vB_AdvancedProfilePhoto
      */
     public function save_to_file($output_file)
     {
-        return imagejpeg($this->_gd_image, $output_file);
+        return imagejpeg($this->_gd_resulting_image, $output_file);
     }
 
     /**
@@ -311,7 +351,7 @@ class vB_AdvancedProfilePhoto
     {
         // imagepng is outputting directly to browser. We are using buffers as we don't need output, we need file contents
         ob_start();
-        imagepng($this->_gd_image, null, self::PNG_COMPRESSION, PNG_ALL_FILTERS);
+        imagepng($this->_gd_resulting_image, null, self::PNG_COMPRESSION, PNG_ALL_FILTERS);
         $result = ob_get_contents();
         ob_end_clean();
         return $result;
@@ -364,8 +404,8 @@ class vB_AdvancedProfilePhoto
 			return true;
 		}
 
-		$w = imagesx($this->_gd_image);
-		$h = imagesy($this->_gd_image);
+		$w = imagesx($this->_gd_resulting_image);
+		$h = imagesy($this->_gd_resulting_image);
 		$imgCanvas = imagecreatetruecolor($w, $h);
 		$imgBlur = imagecreatetruecolor($w, $h);
 
@@ -384,7 +424,7 @@ class vB_AdvancedProfilePhoto
 				array( 2, 4, 2 ),
 				array( 1, 2, 1 )
 			);
-			imagecopy ($imgBlur, $this->_gd_image, 0, 0, 0, 0, $w, $h);
+			imagecopy ($imgBlur, $this->_gd_resulting_image, 0, 0, 0, 0, $w, $h);
 			imageconvolution($imgBlur, $matrix, 16, 0);
 		}
 		else
@@ -393,9 +433,9 @@ class vB_AdvancedProfilePhoto
 			// according to the matrix. The same matrix is simply repeated for higher radii.
 			for ($i = 0; $i < $radius; $i++)
 			{
-				imagecopy ($imgBlur, $this->_gd_image, 0, 0, 1, 0, $w - 1, $h); // left
-				imagecopymerge ($imgBlur, $this->_gd_image, 1, 0, 0, 0, $w, $h, 50); // right
-				imagecopymerge ($imgBlur, $this->_gd_image, 0, 0, 0, 0, $w, $h, 50); // center
+				imagecopy ($imgBlur, $this->_gd_resulting_image, 0, 0, 1, 0, $w - 1, $h); // left
+				imagecopymerge ($imgBlur, $this->_gd_resulting_image, 1, 0, 0, 0, $w, $h, 50); // right
+				imagecopymerge ($imgBlur, $this->_gd_resulting_image, 0, 0, 0, 0, $w, $h, 50); // center
 				imagecopy ($imgCanvas, $imgBlur, 0, 0, 0, 0, $w, $h);
 
 				imagecopymerge ($imgBlur, $imgCanvas, 0, 0, 0, 1, $w, $h - 1, 33.33333 ); // up
@@ -411,7 +451,7 @@ class vB_AdvancedProfilePhoto
 			{
 				for ($y = 0; $y < $h; $y++) // each pixel
 				{
-					$rgbOrig = ImageColorAt($this->_gd_image, $x, $y);
+					$rgbOrig = ImageColorAt($this->_gd_resulting_image, $x, $y);
 					$rOrig = (($rgbOrig >> 16) & 0xFF);
 					$gOrig = (($rgbOrig >> 8) & 0xFF);
 					$bOrig = ($rgbOrig & 0xFF);
@@ -434,8 +474,8 @@ class vB_AdvancedProfilePhoto
 
 					if (($rOrig != $rNew) OR ($gOrig != $gNew) OR ($bOrig != $bNew))
 					{
-					    $pixCol = ImageColorAllocate($this->_gd_image, $rNew, $gNew, $bNew);
-					    ImageSetPixel($this->_gd_image, $x, $y, $pixCol);
+					    $pixCol = ImageColorAllocate($this->_gd_resulting_image, $rNew, $gNew, $bNew);
+					    ImageSetPixel($this->_gd_resulting_image, $x, $y, $pixCol);
 					}
 				}
 			}
@@ -446,7 +486,7 @@ class vB_AdvancedProfilePhoto
 			{
 				for ($y = 0; $y < $h; $y++) // each pixel
 				{
-					$rgbOrig = ImageColorAt($this->_gd_image, $x, $y);
+					$rgbOrig = ImageColorAt($this->_gd_resulting_image, $x, $y);
 					$rOrig = (($rgbOrig >> 16) & 0xFF);
 					$gOrig = (($rgbOrig >> 8) & 0xFF);
 					$bOrig = ($rgbOrig & 0xFF);
@@ -488,7 +528,7 @@ class vB_AdvancedProfilePhoto
 					}
 
 					$rgbNew = ($rNew << 16) + ($gNew << 8) + $bNew;
-					ImageSetPixel($this->_gd_image, $x, $y, $rgbNew);
+					ImageSetPixel($this->_gd_resulting_image, $x, $y, $rgbNew);
 				}
 			}
 		}
@@ -502,9 +542,10 @@ class vB_AdvancedProfilePhoto
 class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
     /**
-     * Generate avatar
+     * Generate avatar and store it using VB data manager
      *
-     * @param array $userinfo
+     * @param array $userid
+     * @param int $avatarrevision
      * @param int $sel_width
      * @param int $sel_height
      * @param int $left
@@ -519,11 +560,12 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         $datamanager->set('userid', $userid);
         $datamanager->set('dateline', TIMENOW);
+        // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename would be given by DM
         $datamanager->set('filename', 'avatar' . $userinfo['userid'] . '.gif');
 
         if ($vbulletin->options['app_avatar_size'] < $this->_src_width OR $vbulletin->options['app_avatar_size'] < $this->_src_height)
         {
-            $this->img_resize($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $sel_width, $sel_height);
+            $this->img_crop_resize_from_src($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $sel_width, $sel_height);
         }
         $this->round_corner($vbulletin->options['app_corners_radius']);
 
@@ -534,15 +576,16 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         if (!$datamanager->save())
         {
-            eval(standard_error(fetch_error('upload_file_failed')));
+            eval(standard_error(fetch_error('app_save_failed')));
         }
         unset($datamanager);
     }
 
     /**
-     * Generate profile picture
+     * Generate profile picture and store it using VB data manager
      *
-     * @param array $userinfo
+     * @param array $userid
+     * @param int $profilepicrevision
      * @param int $sel_width
      * @param int $sel_height
      * @param int $left
@@ -557,11 +600,12 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         $datamanager->set('userid', $userid);
         $datamanager->set('dateline', TIMENOW);
+        // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename would be given by DM
         $datamanager->set('filename', 'profilepic' . $userinfo['userid'] . '.gif');
 
         if ($vbulletin->options['app_profile_size'] < $this->_src_width OR $vbulletin->options['app_profile_size'] < $this->_src_height)
         {
-            $this->img_resize($vbulletin->options['app_profile_size'], $vbulletin->options['app_profile_size'], $left, $top, $sel_width, $sel_height);
+            $this->img_crop_resize_from_src($vbulletin->options['app_profile_size'], $vbulletin->options['app_profile_size'], $left, $top, $sel_width, $sel_height);
         }
 
         $datamanager->set('width', $this->get_width());
@@ -571,13 +615,13 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         if (!$datamanager->save())
         {
-            eval(standard_error(fetch_error('upload_file_failed')));
+            eval(standard_error(fetch_error('app_save_failed')));
         }
         unset($upload);
     }
 
     /**
-     * Generate bigpic data
+     * Store the data about the selection and bigpic width/height in DB
      *
      * @param int $sel_width
      * @param int $sel_height

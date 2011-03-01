@@ -206,8 +206,8 @@ var pictureManager = {
         var coords = pictureManager.getCoords();
 
         var results = fetch_object('avatar_img_crop');
-        results.src = "ajax.php?do=crop_avatar" + "&securitytoken=" + 
-SECURITYTOKEN + "&top=" + coords.top + "&left=" + coords.left + "&height=" + coords.height + "&width=" + coords.width;
+        results.src = "app_preview.php?do=crop_avatar" + "&securitytoken=" + SECURITYTOKEN + "&rnd=" + Math.random() +
+                      "&top=" + coords.top + "&left=" + coords.left + "&height=" + coords.height + "&width=" + coords.width;
     },
 
     savePicture: function() {

@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "custombigpic (
   `sel_width` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `sel_height` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `dateline`  INT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`userid`)
+  PRIMARY KEY (`userid`),
+  KEY `dateline` (`dateline`, `userid`),
 )");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicrevision` INT(10) UNSIGNED NOT NULL DEFAULT 0 ");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `isbigpicadded` TINYINT UNSIGNED NOT NULL DEFAULT 0 ");
@@ -184,7 +185,7 @@ $db->show_errors();]]></installcode>
     z-index:3;
 }
 </style>]]></template>
-		<template name="app_edit_picture" templatetype="template" date="1298609863" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_edit_picture" templatetype="template" date="1298959558" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
             <img id='avatar_img_crop' src="{vb:raw path}" />
@@ -225,15 +226,17 @@ $db->show_errors();]]></installcode>
     </vb:if>
 <script type="text/javascript">
 <!--
+<vb:if condition="$show['app_editing_options']">
     var app_img_width = {vb:raw width};
     var app_img_height = {vb:raw height};
-<vb:if condition="$show['app_editing_options']">
     var app_sel_top = {vb:raw top};
     var app_sel_left = {vb:raw left};
     var app_sel_width = {vb:raw sel_width};
     var app_sel_height = {vb:raw sel_height};
     var app_min_length = {vb:raw min_length};
 <vb:else />
+    var app_img_width = {vb:raw width};
+    var app_img_height = {vb:raw height};
     APP_CenterImage({vb:raw width});
 </vb:if>
 // -->
@@ -408,7 +411,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
         }
         else
         {
-            error_log("Unable to open user ". $avatar['userid'] ." big pic on path " . $target_path);
+            error_log("Unable to open user's big pic on path " . $target_path);
         }
         unset($img_editor);
 
@@ -457,6 +460,7 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
     {
         foreach ($vbulletin->GPC['todeletelist'] as $user_id)
         {
+            // avatar and big pic would be deleted automatically (userpicdata_delete)
             $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
             $userpic->condition = "userid = " . $user_id;
             $userpic->delete();
@@ -510,56 +514,25 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
-			<title>Display avatar preview</title>
-			<hookname>ajax_complete</hookname>
-			<phpcode><![CDATA[if ($_REQUEST['do'] == 'crop_avatar' AND $show['member'])
-{
-    $vbulletin->input->clean_array_gpc('r', array(
-        'top' => TYPE_UINT,
-        'left' => TYPE_UINT,
-        'height' => TYPE_UINT,
-        'width' => TYPE_UINT
-    ));
-    require_once DIR . '/includes/class_advanced_profile_photo.php';
-    $left = ($vbulletin->GPC['left'] < 0 ) ? 0 : $vbulletin->GPC['left'];
-    $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
-    $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto::MAX_HEIGHT) ? vB_AdvancedProfilePhoto::MAX_HEIGHT : $vbulletin->GPC['height'];
-    $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto::MAX_WIDTH) ? vB_AdvancedProfilePhoto::MAX_WIDTH : $vbulletin->GPC['width'];
-
-    $target_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
-    $img_editor = new vB_AdvancedProfilePhoto($target_path);
-    if ($img_editor)
-    {
-        $img_editor->img_resize($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $width, $height);
-        $img_editor->unshar_pmask(UNSHARP_MASK_AMOUNT, UNSHARP_MASK_RADIUS, UNSHARP_MASK_THRESHOLD);
-        $img_editor->round_corner($vbulletin->options['app_corners_radius']);
-
-        header("Content-type: image/png");
-        echo $img_editor->get_img_binary();
-    }
-}]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
 			<title>Upload and resize big profile pic</title>
 			<hookname>ajax_complete</hookname>
 			<phpcode><![CDATA[if ($_POST['do'] == 'upload_picture' AND $show['member'])
 {
-    $destination_folder = $vbulletin->options['app_img_folder']."/";
-    $target_path = $destination_folder . TIMENOW . basename( $_FILES['upload']['name']);
-    if(move_uploaded_file($_FILES['upload']['tmp_name'], $target_path))
+    $tmp_file_path = tempnam(sys_get_temp_dir(), basename($_FILES['upload']['name']));
+    if(move_uploaded_file($_FILES['upload']['tmp_name'], $tmp_file_path))
     {
         require_once DIR . '/includes/class_advanced_profile_photo.php';
-        $img_editor = new vB_AdvancedProfilePhoto($target_path);
+        $img_editor = new vB_AdvancedProfilePhoto($tmp_file_path);
         if (!$img_editor)
         {
-            @unlink($target_path);
+            @unlink($tmp_file_path);
             standard_error(fetch_error('upload_invalid_image'));
         }
 
         $min_size = $vbulletin->options['app_avatar_size'];
         if ($img_editor->get_width() < $min_size OR $img_editor->get_height() < $min_size)
         {
-            @unlink($target_path);
+            @unlink($tmp_file_path);
             standard_error(fetch_error('app_image_too_small',$min_size));
         }
 
@@ -585,12 +558,12 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         $img_width = $img_editor->get_width();
         if ($img_width > vB_AdvancedProfilePhoto::MAX_WIDTH OR $img_height > vB_AdvancedProfilePhoto::MAX_HEIGHT)
         {
-            $img_editor->img_resize(vB_AdvancedProfilePhoto::MAX_WIDTH, vB_AdvancedProfilePhoto::MAX_HEIGHT);
+            $img_editor->img_resize_from_src(vB_AdvancedProfilePhoto::MAX_WIDTH, vB_AdvancedProfilePhoto::MAX_HEIGHT);
         }
 
-        $new_path = $destination_folder. $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg";
+        $new_path = $vbulletin->options['app_img_folder']."/". $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg";
         $img_editor->save_to_file($new_path);
-        @unlink($target_path);
+        @unlink($tmp_file_path);
 
         // change revision of uploaded file
         $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `bigpicrevision` = ". ($vbulletin->userinfo['bigpicrevision'] + 1) ."
@@ -602,7 +575,7 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 
         $show['app_editing_options'] = true;
         $templater = vB_Template::create('app_edit_picture');
-        $templater->register('path', $destination_folder. $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg");
+        $templater->register('path', $new_path);
         // create response for ajax
         require_once(DIR . '/includes/class_xml.php');
 
@@ -615,7 +588,7 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         $xml->add_tag('left', 0);
         $xml->add_tag('sel_width', $selection_width);
         $xml->add_tag('sel_height', $selection_height);
-        $xml->add_tag('min_length', $min_length);     
+        $xml->add_tag('min_length', $min_size);     
         $xml->close_group();
         $xml->print_xml(); 
     }
@@ -639,9 +612,35 @@ if (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'upload_picture' AND $show['member
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
-			<title>Deny avatar edit from menu</title>
+			<title>Delete not saved big pics</title>
+			<hookname>cron_script_cleanup_daily</hookname>
+			<phpcode><![CDATA[define('THIRTYDAYS', 30*24*60*60);
+
+// Get all uploaded, but not saved big pics
+$bigpics = $vbulletin->db->query_read("SELECT user.userid, user.bigpicrevision FROM " . TABLE_PREFIX . "custombigpic AS bigpic
+                                       INNER JOIN " . TABLE_PREFIX . "user AS user ON (user.userid = bigpic.userid AND user.isbigpicadded = 0)
+                                       WHERE bigpic.dateline >= ". (TIMENOW - THIRTYDAYS));
+
+$userids = array();
+$file_paths = array();
+
+while ($bigpic = $vbulletin->db->fetch_array($bigpics))
+{
+    @unlink($vbulletin->options['app_img_folder']."/".$bigpic['userid']."_".$bigpic['bigpicrevision'].".jpg");
+    $userids[] = $bigpic['userid'];
+}
+
+if (!empty($userids))
+{
+    $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE userid IN (" . implode(",", $userids) . ")");
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Disable avatar edit link in left block</title>
 			<hookname>global_bootstrap_complete</hookname>
-			<phpcode><![CDATA[global $show;
+			<phpcode><![CDATA[// this variable is used in several files (subscribe.php, profile.php etc)
+// so we disabled it globally
+global $show;
 $show['avatarlink'] = false;]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -665,12 +664,12 @@ $show['avatarlink'] = false;]]></phpcode>
     $template_hook['footer_javascript'] .= $templater->render();
 }
 
-if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->templatecache))
+/*if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->templatecache))
 {
     $search = '<!-- scripts for quick reply and quick edit -->';
     $replace = '$final_rendered .= $template_hook[\'app_init_postdata\'];' . $search;
     $vbulletin->templatecache['SHOWTHREAD'] = str_replace($search, $replace, $vbulletin->templatecache['SHOWTHREAD']); 
-}]]></phpcode>
+}*/]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Replace profile templates</title>
@@ -751,7 +750,7 @@ if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->t
     $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
     $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto_Store::MAX_HEIGHT) ? vB_AdvancedProfilePhoto_Store::MAX_HEIGHT : $vbulletin->GPC['height'];
     $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto_Store::MAX_WIDTH) ? vB_AdvancedProfilePhoto_Store::MAX_WIDTH : $vbulletin->GPC['width'];
-    $target_path = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+    $target_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
 
     $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
     if ($img_editor)
@@ -770,7 +769,7 @@ if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->t
 			<hookname>showthread_complete</hookname>
 			<phpcode><![CDATA[$template_hook['app_init_postdata'] = ;]]></phpcode>
 		</plugin>
-		<plugin active="1" executionorder="5">
+		<plugin active="0" executionorder="5">
 			<title>Init post ids for big pics</title>
 			<hookname>showthread_postbit_create</hookname>
 			<phpcode><![CDATA[global $postids_with_big_pic;
@@ -782,7 +781,7 @@ if (!isset($postids_with_big_pic))
 
 if ($post['isbigpicadded'])
 {
-    $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder'].DIRECTORY_SEPARATOR.$post['userid']."_".$post['bigpicrevision'].".jpg";;
+    $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";;
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -814,6 +813,7 @@ if ($post['isbigpicadded'])
 	<phrases>
 		<phrasetype name="Error Messages" fieldname="error">
 			<phrase name="app_image_too_small" date="1297758634" username="Jannie" version=""><![CDATA[Image too small. It should be at least {1}x{1} pixels.]]></phrase>
+			<phrase name="app_save_failed" date="1298952212" username="admin" version=""><![CDATA[System error: can't save file.]]></phrase>
 		</phrasetype>
 		<phrasetype name="GLOBAL" fieldname="global">
 			<phrase name="app_allow_fullsize" date="1297758574" username="Jannie" version=""><![CDATA[I allow to show full size photo where possible]]></phrase>
