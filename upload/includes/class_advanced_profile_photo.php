@@ -560,7 +560,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         $datamanager->set('userid', $userid);
         $datamanager->set('dateline', TIMENOW);
-        // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename would be given by DM
+        // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename is given by DM
         $datamanager->set('filename', 'avatar' . $userinfo['userid'] . '.gif');
 
         if ($vbulletin->options['app_avatar_size'] < $this->_src_width OR $vbulletin->options['app_avatar_size'] < $this->_src_height)
@@ -600,7 +600,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
 
         $datamanager->set('userid', $userid);
         $datamanager->set('dateline', TIMENOW);
-        // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename would be given by DM
+        // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename is given by DM
         $datamanager->set('filename', 'profilepic' . $userinfo['userid'] . '.gif');
 
         if ($vbulletin->options['app_profile_size'] < $this->_src_width OR $vbulletin->options['app_profile_size'] < $this->_src_height)
@@ -621,7 +621,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
     }
 
     /**
-     * Store the data about the selection and bigpic width/height in DB
+     * Store bigpic size and selection area. This is done here because we don't have bigpic data manager
      *
      * @param int $sel_width
      * @param int $sel_height

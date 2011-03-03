@@ -13,7 +13,7 @@ define('VB_AREA', 'FORUM');
 
 require_once('./includes/init.php');
 
-if ($_REQUEST['do'] == 'crop_avatar' AND $vbulletin->userinfo['userid'] > 0)
+if ($_REQUEST['do'] == 'make_preview' AND $vbulletin->userinfo['userid'] > 0)
 {
     $vbulletin->input->clean_array_gpc('r', array(
         'top' => TYPE_UINT,

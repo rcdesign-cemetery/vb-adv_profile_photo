@@ -1,18 +1,41 @@
-
-
+/**                                                                                                                                  
+ * pictureManager: object to work with big profile pic - select regions, save it
+ */
 var pictureManager = {
 
+    /**
+     * avatar preview timer
+     */
     pm_timer_id:null,
-    crop:null,
+
+    /**
+     * selection object
+     */
+    selection:null,
+
+    /**
+     * source image dimensions
+     */
     img_width:0,
     img_height:0,
+
+    /**
+     * selection data
+     */
     sel_top:0,
     sel_left:0,
     sel_width:0,
     sel_height:0,
     min_sel_length:0,
+
+    /**
+     * lock save button till user does something with selection
+     */
     is_save_locked:true,
 
+    /**
+     * Object constructor. Called for all cases, except AJAX upload
+     */
     initPicture: function() {
         // just exit if user has no photo
         if (!fetch_object('app_resize'))
@@ -27,9 +50,13 @@ var pictureManager = {
         pictureManager.sel_width = app_sel_width;
         pictureManager.sel_height = app_sel_height;
         pictureManager.min_sel_length = app_min_length;
-        pictureManager.initData();
+        pictureManager.initEditor();
     },
 
+    /**
+     * Object constructor. Called for AJAX upload case only
+     * @param xml result - AJAX responce
+     */
     initPictureFromAJAX: function(result) {
         if (AJAX_Compatible)
         {
@@ -45,6 +72,7 @@ var pictureManager = {
                 }
                 else
                 {
+                    // get new image html
                     var string_node = result.responseXML.getElementsByTagName('image_html');
                     if (string_node.length)
                     {
@@ -53,6 +81,7 @@ var pictureManager = {
                         form_object.parentNode.replaceChild(edit_result, form_object);
                     }
 
+                    // init new image params
                     string_node = result.responseXML.getElementsByTagName('width');
                     if (string_node.length)
                     {
@@ -94,24 +123,27 @@ var pictureManager = {
                     {
                         pictureManager.min_sel_length = parseInt(string_node[0].firstChild.nodeValue);
                     }
-                    pictureManager.initData();
+                    pictureManager.initEditor();
                 }
             }
         }
     },
 
-    initData: function() {
+    /**
+     * Inits editor
+     */
+    initEditor: function() {
         APP_CenterImage(this.img_width);
 
         var is_sel_editable = true;
         var avatar_result_wrapper = fetch_object('app_avatar_result_wrapper');
-        var img_crop = fetch_object('avatar_img_crop');
+        var img_selection = fetch_object('avatar_img_selection');
         if (this.min_sel_length >= this.img_width || this.min_sel_length >= this.img_height)
         {
             is_sel_editable = false;
             avatar_result_wrapper.style.width = this.img_width + 'px';
-            img_crop.style.width = this.img_width + 'px';
-            img_crop.style.height = this.img_height + 'px';
+            img_selection.style.width = this.img_width + 'px';
+            img_selection.style.height = this.img_height + 'px';
         }
 
         if (this.img_height < avatar_result_wrapper.offsetHeight)
@@ -122,10 +154,14 @@ var pictureManager = {
 
         this.initSelection(is_sel_editable);
         var image = fetch_object('avatar_img');
-        this.crop._wrap.style.backgroundImage = "url(" + image.src + ")";
-        this.setBackgroundPositition(this.crop._wrap.style.left, this.crop._wrap.style.top);
+        this.selection._wrap.style.backgroundImage = "url(" + image.src + ")";
+        this.setBackgroundPositition(this.selection._wrap.style.left, this.selection._wrap.style.top);
     },
 
+    /**
+     * Inits selection
+     * @param boolean is_sel_editable - selection is not editable for pictures smaller then min selection length
+     */
     initSelection: function(is_sel_editable) {
         var min_width = this.min_sel_length;
         if (min_width > this.sel_width)
@@ -139,7 +175,8 @@ var pictureManager = {
             min_height = this.sel_height;
         }
 
-        this.crop = new YAHOO.util.Resize('app_resize', {
+        // init selection object
+        this.selection = new YAHOO.util.Resize('app_resize', {
                 keyTick: 50,
                 shiftKeyTick: 10,
                 minHeight: min_height,
@@ -153,20 +190,21 @@ var pictureManager = {
                 height: this.sel_height + 'px',
                 width: this.sel_width + 'px'
             });
-        this.crop.getWrapEl().style.top = this.sel_top + 'px';
-        this.crop.getWrapEl().style.left = this.sel_left + 'px';
+        // set selection position
+        this.selection.getWrapEl().style.top = this.sel_top + 'px';
+        this.selection.getWrapEl().style.left = this.sel_left + 'px';
 
-        this.crop.on('endResize', function() {
+        this.selection.on('endResize', function() {
             clearTimeout(pictureManager.pm_timer_id);
             pictureManager.setConstraints();
             pictureManager.pm_timer_id = setTimeout('pictureManager.sendRequest()',500);
         });
 
-        this.crop.on('resize', function() {
+        this.selection.on('resize', function() {
             pictureManager.setConstraints();
         });
 
-        this.crop.on('dragEvent', function() {
+        this.selection.on('dragEvent', function() {
             clearTimeout(pictureManager.pm_timer_id);
             pictureManager.setConstraints();
             pictureManager.pm_timer_id = setTimeout('pictureManager.sendRequest()',500);
@@ -174,22 +212,32 @@ var pictureManager = {
 
         if (is_sel_editable)
         {
+            // send the request to get avatar preview, based on selection data
             this.sendRequest();
         }
         else
         {
+            // unlock save button as selection is locked
             this.is_save_locked = false;
             fetch_object('app_chkbox_1').disabled = '';
-            this.crop.lock();
+            this.selection.lock();
         }
     },
 
+    /**
+     * Set bg position for selection
+     * @param int left
+     * @param int top
+     */
     setBackgroundPositition: function(left, top) {
-        pictureManager.crop._wrap.style.backgroundPosition = "-" + left + " -" + top;
+        pictureManager.selection._wrap.style.backgroundPosition = "-" + left + " -" + top;
     },
 
+    /**
+     * Get selection coords and width/height
+     */
     getCoords: function() {
-        var resize = this.crop.getWrapEl().style;
+        var resize = this.selection.getWrapEl().style;
         var left = parseInt(resize.left.replace('px',''));
         var top = parseInt(resize.top.replace('px',''));
         var width = parseInt(resize.width.replace('px',''));
@@ -201,15 +249,21 @@ var pictureManager = {
                 height: height};
     },
 
+    /**
+     * Send request for avatar preview
+     */
     sendRequest: function() {
         clearTimeout(pictureManager.pm_timer_id);
         var coords = pictureManager.getCoords();
 
-        var results = fetch_object('avatar_img_crop');
-        results.src = "app_preview.php?do=crop_avatar" + "&securitytoken=" + SECURITYTOKEN + "&rnd=" + Math.random() +
+        var results = fetch_object('avatar_img_selection');
+        results.src = "app_preview.php?do=make_preview" + "&securitytoken=" + SECURITYTOKEN + "&rnd=" + Math.random() +
                       "&top=" + coords.top + "&left=" + coords.left + "&height=" + coords.height + "&width=" + coords.width;
     },
 
+    /**
+     * Generate avatar/profilepic and save bigpic
+     */
     savePicture: function() {
         var coords = pictureManager.getCoords();
         var pseudoform = new vB_Hidden_Form('profile.php');
@@ -223,6 +277,9 @@ var pictureManager = {
         pseudoform.submit_form();
     },
 
+    /**
+     * Limit selection movement to picture area
+     */
     setConstraints: function() {
         if (this.is_save_locked)
         {
@@ -234,28 +291,31 @@ var pictureManager = {
 
         if (resize.left < 0)
         {
-           this.crop.getWrapEl().style.left = '0px';
+           this.selection.getWrapEl().style.left = '0px';
         }
 
         if (resize.top < 0)
         {
-           this.crop.getWrapEl().style.top = '0px';
+           this.selection.getWrapEl().style.top = '0px';
         }
 
         if (resize.left + resize.width > this.img_width)
         {
-           this.crop.getWrapEl().style.left = (this.img_width - resize.width) + 'px';
+           this.selection.getWrapEl().style.left = (this.img_width - resize.width) + 'px';
         }
 
         if (resize.top + resize.height > this.img_height)
         {
-           this.crop.getWrapEl().style.top = (this.img_height - resize.height) + 'px';
+           this.selection.getWrapEl().style.top = (this.img_height - resize.height) + 'px';
         }
 
-        this.setBackgroundPositition(this.crop.getWrapEl().style.left, this.crop.getWrapEl().style.top);
+        this.setBackgroundPositition(this.selection.getWrapEl().style.left, this.selection.getWrapEl().style.top);
     }
 };
 
+/**
+ * Upload the picture
+ */
 function APP_Upload_File()
 {
     var progress = fetch_object('app_progress');
@@ -272,6 +332,9 @@ function APP_Upload_File()
     var connection = YAHOO.util.Connect.asyncRequest('POST', 'ajax.php', callback, 'do=upload_picture');
 }
 
+/**
+ * Enables/disables checkboxes
+ */
 function APP_Toggle_Next(context)
 {
     var visibility = 'hidden';
@@ -288,6 +351,9 @@ function APP_Toggle_Next(context)
 
 }
 
+/**
+ * Enables/disables save button
+ */
 function APP_Toggle_Button(context)
 {
     var disabled = 'disabled';
@@ -300,6 +366,9 @@ function APP_Toggle_Button(context)
     second_chkbox.disabled = disabled;
 }
 
+/**
+ * Deletes the picture
+ */
 function APP_DeletePicture()
 {
     var pseudoform = new vB_Hidden_Form('profile.php');
@@ -310,6 +379,10 @@ function APP_DeletePicture()
     pseudoform.submit_form();
 }
 
+/**
+ * Centers image based on its width
+ * @param int width
+ */
 function APP_CenterImage(width)
 {
     var wrap = fetch_object('avatar_img_wrap');

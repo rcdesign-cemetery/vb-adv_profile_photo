@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
 <product productid="rcd_adv_profile_photo" active="1">
-	<title>Advenced Profile Photo</title>
+	<title>Advanced Profile Photo</title>
 	<description>Advenced profile photo and avatar editing</description>
 	<version>0.1</version>
 	<url />
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "custombigpic (
   `sel_height` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `dateline`  INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`userid`),
-  KEY `dateline` (`dateline`, `userid`),
+  KEY `dateline` (`dateline`, `userid`)
 )");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicrevision` INT(10) UNSIGNED NOT NULL DEFAULT 0 ");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `isbigpicadded` TINYINT UNSIGNED NOT NULL DEFAULT 0 ");
@@ -36,6 +36,61 @@ $db->show_errors();]]></installcode>
 		</code>
 	</codes>
 	<templates>
+		<template name="app_bigpic_menu_css" templatetype="template" date="1299048618" username="admin" version="0.1"><![CDATA[<style type="text/css">
+.app_bigpic_menu {
+  padding:none;
+  margin:none;
+  width:auto;
+  height:auto;
+  position:absolute;
+}
+
+.app_bigpic_menu ul {
+  -moz-border-radius:{vb:stylevar border_radius};
+  -webkit-border-radius:{vb:stylevar border_radius};
+  direction:ltr;
+  padding:none;
+  margin:none;
+  border:1px solid {vb:stylevar navbar_tab_background.backgroundColor};
+  background:{vb:stylevar navbar_tab_background.backgroundColor};
+  width:auto;
+  min-width:20px;
+  position:absolute;
+  top:50%;
+}
+
+.app_bigpic_menu img {
+  padding:{vb:stylevar padding};
+  background:{vb:stylevar formrow_background.backgroundColor} bottom repeat-x;
+}
+</style>]]></template>
+		<template name="app_bigpic_menu_init_js" templatetype="template" date="1299045144" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
+<!--
+appBigpic.init('posts');
+//-->
+</script>]]></template>
+		<template name="app_bigpic_menu_js" templatetype="template" date="1299046470" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_bigpic_display.js?v={vb:raw version}"></script>
+<vb:if condition="!isset($show['yui_menu_exists'])">
+<script type="text/javascript" src="{vb:stylevar yuipath}/yahoo-dom-event/yahoo-dom-event.js?v={vb:raw vboptions.simpleversion}"></script>
+<script type="text/javascript" src="{vb:stylevar yuipath}/container/container_core-min.js?v={vb:raw vboptions.simpleversion}"></script>
+<script type="text/javascript" src="{vb:stylevar yuipath}/menu/menu-min.js?v={vb:raw vboptions.simpleversion}"></script>
+</vb:if>
+<vb:if condition="!isset($show['yui_animation_exists'])">
+<script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
+</vb:if>]]></template>
+		<template name="app_bigpic_popup_menu" templatetype="template" date="1299058229" username="admin" version="0.1"><![CDATA[<div id="app_bigpic_popup_menu">
+ <div class="app_bigpic_menu">
+  <ul class="popupbody">
+   <li><img id="app_bigpic_img" src="" /></li>
+  </ul>
+ </div>
+</div>
+<script type="text/javascript">
+<!--
+var app_post_ids = [{vb:raw post_ids}];
+var app_pic_paths = [{vb:raw pic_paths}];
+//-->
+</script>]]></template>
 		<template name="app_css" templatetype="template" date="1296442200" username="admin" version="0.1"><![CDATA[<!-- Skin CSS file -->
 <link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/resize.css">
 <link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/imagecropper.css">
@@ -185,10 +240,10 @@ $db->show_errors();]]></installcode>
     z-index:3;
 }
 </style>]]></template>
-		<template name="app_edit_picture" templatetype="template" date="1298959558" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_edit_picture" templatetype="template" date="1299135330" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
-            <img id='avatar_img_crop' src="{vb:raw path}" />
+            <img id='avatar_img_selection' src="{vb:raw path}" />
         </div>
     </vb:if>
     <div style="overflow:hidden;">
@@ -518,7 +573,7 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 			<hookname>ajax_complete</hookname>
 			<phpcode><![CDATA[if ($_POST['do'] == 'upload_picture' AND $show['member'])
 {
-    $tmp_file_path = tempnam(sys_get_temp_dir(), basename($_FILES['upload']['name']));
+    $tmp_file_path = tempnam(sys_get_temp_dir(), "vb_bp");
     if(move_uploaded_file($_FILES['upload']['tmp_name'], $tmp_file_path))
     {
         require_once DIR . '/includes/class_advanced_profile_photo.php';
@@ -609,17 +664,26 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 if (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'upload_picture' AND $show['member'])
 {
     $cache[] = 'app_edit_picture';
+}
+
+if (THIS_SCRIPT == 'showthread' AND $show['member'])
+{
+    $cache[] = 'app_bigpic_menu_js';
+    $cache[] = 'app_bigpic_menu_css';
+    $cache[] = 'app_bigpic_menu_init_js';
+    $cache[] = 'app_bigpic_popup_menu';
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Delete not saved big pics</title>
 			<hookname>cron_script_cleanup_daily</hookname>
-			<phpcode><![CDATA[define('THIRTYDAYS', 30*24*60*60);
+			<phpcode><![CDATA[// set to 7 days
+define('TIMECUTOFF', 7*24*60*60);
 
 // Get all uploaded, but not saved big pics
 $bigpics = $vbulletin->db->query_read("SELECT user.userid, user.bigpicrevision FROM " . TABLE_PREFIX . "custombigpic AS bigpic
                                        INNER JOIN " . TABLE_PREFIX . "user AS user ON (user.userid = bigpic.userid AND user.isbigpicadded = 0)
-                                       WHERE bigpic.dateline >= ". (TIMENOW - THIRTYDAYS));
+                                       WHERE bigpic.dateline >= ". (TIMENOW - TIMECUTOFF));
 
 $userids = array();
 $file_paths = array();
@@ -664,12 +728,38 @@ $show['avatarlink'] = false;]]></phpcode>
     $template_hook['footer_javascript'] .= $templater->render();
 }
 
-/*if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->templatecache))
+if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->templatecache) AND $show['member'])
 {
-    $search = '<!-- scripts for quick reply and quick edit -->';
-    $replace = '$final_rendered .= $template_hook[\'app_init_postdata\'];' . $search;
+    $search = '. $template_hook[\'showthread_below_posts\'] .';
+    $replace = '. $template_hook[\'app_init_postdata\']' . $search;
     $vbulletin->templatecache['SHOWTHREAD'] = str_replace($search, $replace, $vbulletin->templatecache['SHOWTHREAD']); 
-}*/]]></phpcode>
+}
+
+if (THIS_SCRIPT == 'showthread' AND $show['member'])
+{
+    //define product version and assign it to JS version
+    define('APP_VERSION', '0.1');
+    $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
+    
+    $templater = vB_Template::create('app_bigpic_menu_js');
+    $templater->register('version', $version);
+    $template_hook['headinclude_javascript'] .= $templater->render();
+
+    $templater = vB_Template::create('app_bigpic_menu_css');
+    $template_hook['headinclude_bottom_css'] .= $templater->render();
+
+    $templater = vB_Template::create('app_bigpic_menu_init_js');
+    $template_hook['footer_javascript'] .= $templater->render();
+
+    if (!$show['yui_menu_exists'])
+    {
+        $show['yui_menu_exists'] = true;
+    }
+    if (!$show['yui_animation_exists'])
+    {
+        $show['yui_animation_exists'] = true;
+    }
+}]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Replace profile templates</title>
@@ -764,12 +854,18 @@ $show['avatarlink'] = false;]]></phpcode>
     eval(print_standard_redirect('redirect_updatethanks', true, true));
 }]]></phpcode>
 		</plugin>
-		<plugin active="0" executionorder="5">
+		<plugin active="1" executionorder="5">
 			<title>Init post ids</title>
 			<hookname>showthread_complete</hookname>
-			<phpcode><![CDATA[$template_hook['app_init_postdata'] = ;]]></phpcode>
+			<phpcode><![CDATA[if (isset($postids_with_big_pic) AND !empty($postids_with_big_pic))
+{
+    $templater = vB_Template::create('app_bigpic_popup_menu');
+    $templater->register('post_ids', implode(",", array_keys($postids_with_big_pic)));
+    $templater->register('pic_paths', '"'.implode('","', $postids_with_big_pic).'"');
+    $template_hook['app_init_postdata'] = $templater->render();
+}]]></phpcode>
 		</plugin>
-		<plugin active="0" executionorder="5">
+		<plugin active="1" executionorder="5">
 			<title>Init post ids for big pics</title>
 			<hookname>showthread_postbit_create</hookname>
 			<phpcode><![CDATA[global $postids_with_big_pic;
@@ -781,8 +877,9 @@ if (!isset($postids_with_big_pic))
 
 if ($post['isbigpicadded'])
 {
-    $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";;
-}]]></phpcode>
+    $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";
+}
+var_dump($show['avatar']);]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Delete avatar and source img on profile pic deletion</title>
@@ -812,16 +909,16 @@ if ($post['isbigpicadded'])
 	</plugins>
 	<phrases>
 		<phrasetype name="Error Messages" fieldname="error">
-			<phrase name="app_image_too_small" date="1297758634" username="Jannie" version=""><![CDATA[Image too small. It should be at least {1}x{1} pixels.]]></phrase>
-			<phrase name="app_save_failed" date="1298952212" username="admin" version=""><![CDATA[System error: can't save file.]]></phrase>
+			<phrase name="app_image_too_small" date="1298961428" username="admin" version=""><![CDATA[Image too small. It should be at least {1}x{1} pixels.]]></phrase>
+			<phrase name="app_save_failed" date="1299115305" username="admin" version=""><![CDATA[Fatal error: can't save file.]]></phrase>
 		</phrasetype>
 		<phrasetype name="GLOBAL" fieldname="global">
-			<phrase name="app_allow_fullsize" date="1297758574" username="Jannie" version=""><![CDATA[I allow to show full size photo where possible]]></phrase>
-			<phrase name="app_annotation" date="1297758585" username="Jannie" version=""><![CDATA[<span style="color:red;">ATTENTION!</span> You can upload your own photo here. It will be shown as avatars and so on. Only real photos acceptable. After upload select face area, it should be well seen. Any other content violates forum rules.]]></phrase>
-			<phrase name="app_confirm_photo" date="1297758620" username="Jannie" version=""><![CDATA[I confirm, this photo is mine]]></phrase>
-			<phrase name="app_confirm_photo_face" date="1297758598" username="Jannie" version=""><![CDATA[I confirm, that selected my face]]></phrase>
-			<phrase name="app_result" date="1297758561" username="Jannie" version=""><![CDATA[result:]]></phrase>
-			<phrase name="app_save" date="1297758610" username="Jannie" version=""><![CDATA[Save]]></phrase>
+			<phrase name="app_allow_fullsize" date="1298961293" username="admin" version=""><![CDATA[I allow to show full size photo where possible]]></phrase>
+			<phrase name="app_annotation" date="1298961315" username="admin" version=""><![CDATA[<span style="color:red;">ATTENTION!</span> You can upload your own photo here. It will be shown as avatars and so on. Only real photos acceptable. After upload select face area, it should be well seen. Any other content violates forum rules.]]></phrase>
+			<phrase name="app_confirm_photo" date="1298961337" username="admin" version=""><![CDATA[I confirm, this photo is mine]]></phrase>
+			<phrase name="app_confirm_photo_face" date="1298961362" username="admin" version=""><![CDATA[I confirm, that selected my face]]></phrase>
+			<phrase name="app_result" date="1298961386" username="admin" version=""><![CDATA[result:]]></phrase>
+			<phrase name="app_save" date="1298961404" username="admin" version=""><![CDATA[Save]]></phrase>
 		</phrasetype>
 		<phrasetype name="Maintenance Tools" fieldname="maintenance">
 			<phrase name="app_include_automatic_javascript_redirect" date="1297746847" username="admin" version=""><![CDATA[Include automatic javascript redirect]]></phrase>
