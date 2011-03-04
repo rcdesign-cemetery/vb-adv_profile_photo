@@ -240,10 +240,10 @@ var app_pic_paths = [{vb:raw pic_paths}];
     z-index:3;
 }
 </style>]]></template>
-		<template name="app_edit_picture" templatetype="template" date="1299135330" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_edit_picture" templatetype="template" date="1299212568" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
-            <img id='avatar_img_selection' src="{vb:raw path}" />
+            <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
         </div>
     </vb:if>
     <div style="overflow:hidden;">
@@ -297,7 +297,7 @@ var app_pic_paths = [{vb:raw pic_paths}];
 // -->
 </script>
 </div>]]></template>
-		<template name="app_init_js" templatetype="template" date="1296457940" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
+		<template name="app_init_js" templatetype="template" date="1299219233" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
 <!--
     pictureManager.initPicture();
 //-->
@@ -312,16 +312,12 @@ var app_pic_paths = [{vb:raw pic_paths}];
 //-->
 
 </script>]]></template>
-		<template name="app_js" templatetype="template" date="1297757592" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo.js?v={vb:raw version}"></script>
+		<template name="app_js" templatetype="template" date="1299219205" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo.js?v={vb:raw version}"></script>
 <script type="text/javascript" src="{vb:stylevar yuipath}/connection/connection.js?v={vb:raw vboptions.simpleversion}"></script>
-<script src="{vb:stylevar yuipath}/dragdrop/dragdrop-min.js"></script> 
-<script src="{vb:stylevar yuipath}/element/element-min.js"></script> 
+<script src="{vb:stylevar yuipath}/dragdrop/dragdrop-min.js?v={vb:raw vboptions.simpleversion}"></script> 
+<script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
 <!-- Source file for the Resize Utility -->
-<script src="{vb:stylevar yuipath}/resize/resize-min.js"></script>
-<!-- Source file for the ImageCropper Control -->
-<script src="{vb:stylevar yuipath}/imagecropper/imagecropper-min.js"></script>
-
-]]></template>
+<script src="{vb:stylevar yuipath}/resize/resize-min.js?v={vb:raw vboptions.simpleversion}"></script>]]></template>
 		<template name="app_usercp_shell" templatetype="template" date="1296442187" username="admin" version="0.1"><![CDATA[{vb:stylevar htmldoctype}
 <html xmlns="http://www.w3.org/1999/xhtml"<vb:if condition="$vboptions['enablefacebookconnect']"> xmlns:fb="http://www.facebook.com/2008/fbml"</vb:if> dir="{vb:stylevar textdirection}" lang="{vb:stylevar languagecode}" id="vbulletin_html">
 <head>
@@ -878,8 +874,7 @@ if (!isset($postids_with_big_pic))
 if ($post['isbigpicadded'])
 {
     $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";
-}
-var_dump($show['avatar']);]]></phpcode>
+}]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
 			<title>Delete avatar and source img on profile pic deletion</title>

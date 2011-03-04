@@ -6,7 +6,8 @@ var pictureManager = {
     /**
      * avatar preview timer
      */
-    pm_timer_id:null,
+    timer_id:null,
+    timeout:500,
 
     /**
      * selection object
@@ -54,7 +55,7 @@ var pictureManager = {
     },
 
     /**
-     * Object constructor. Called for AJAX upload case only
+     * Object constructor. Called for AJAX bigpic image upload case only
      * @param xml result - AJAX responce
      */
     initPictureFromAJAX: function(result) {
@@ -133,6 +134,7 @@ var pictureManager = {
      * Inits editor
      */
     initEditor: function() {
+        this.is_save_locked = true;
         APP_CenterImage(this.img_width);
 
         var is_sel_editable = true;
@@ -155,7 +157,7 @@ var pictureManager = {
         this.initSelection(is_sel_editable);
         var image = fetch_object('avatar_img');
         this.selection._wrap.style.backgroundImage = "url(" + image.src + ")";
-        this.setBackgroundPositition(this.selection._wrap.style.left, this.selection._wrap.style.top);
+        this.setSelectionBGPosition(this.selection._wrap.style.left, this.selection._wrap.style.top);
     },
 
     /**
@@ -195,27 +197,26 @@ var pictureManager = {
         this.selection.getWrapEl().style.left = this.sel_left + 'px';
 
         this.selection.on('endResize', function() {
-            clearTimeout(pictureManager.pm_timer_id);
+            clearTimeout(pictureManager.timer_id);
             pictureManager.setConstraints();
-            pictureManager.pm_timer_id = setTimeout('pictureManager.sendRequest()',500);
+            pictureManager.timer_id = setTimeout('pictureManager.requestPreview()',pictureManager.timeout);
         });
 
         this.selection.on('resize', function() {
+            clearTimeout(pictureManager.timer_id);
             pictureManager.setConstraints();
+            pictureManager.timer_id = setTimeout('pictureManager.requestPreview()',pictureManager.timeout);
         });
 
         this.selection.on('dragEvent', function() {
-            clearTimeout(pictureManager.pm_timer_id);
+            clearTimeout(pictureManager.timer_id);
             pictureManager.setConstraints();
-            pictureManager.pm_timer_id = setTimeout('pictureManager.sendRequest()',500);
+            pictureManager.timer_id = setTimeout('pictureManager.requestPreview()',pictureManager.timeout);
         });
 
-        if (is_sel_editable)
-        {
-            // send the request to get avatar preview, based on selection data
-            this.sendRequest();
-        }
-        else
+        // send the request to get avatar preview, based on selection data
+        this.requestPreview();
+        if (!is_sel_editable)
         {
             // unlock save button as selection is locked
             this.is_save_locked = false;
@@ -229,14 +230,14 @@ var pictureManager = {
      * @param int left
      * @param int top
      */
-    setBackgroundPositition: function(left, top) {
+    setSelectionBGPosition: function(left, top) {
         pictureManager.selection._wrap.style.backgroundPosition = "-" + left + " -" + top;
     },
 
     /**
      * Get selection coords and width/height
      */
-    getCoords: function() {
+    getSelectionArea: function() {
         var resize = this.selection.getWrapEl().style;
         var left = parseInt(resize.left.replace('px',''));
         var top = parseInt(resize.top.replace('px',''));
@@ -252,33 +253,33 @@ var pictureManager = {
     /**
      * Send request for avatar preview
      */
-    sendRequest: function() {
-        clearTimeout(pictureManager.pm_timer_id);
-        var coords = pictureManager.getCoords();
+    requestPreview: function() {
+        clearTimeout(pictureManager.timer_id);
+        var selection = pictureManager.getSelectionArea();
 
         var results = fetch_object('avatar_img_selection');
         results.src = "app_preview.php?do=make_preview" + "&securitytoken=" + SECURITYTOKEN + "&rnd=" + Math.random() +
-                      "&top=" + coords.top + "&left=" + coords.left + "&height=" + coords.height + "&width=" + coords.width;
+                      "&top=" + selection.top + "&left=" + selection.left + "&height=" + selection.height + "&width=" + selection.width;
     },
 
     /**
      * Generate avatar/profilepic and save bigpic
      */
     savePicture: function() {
-        var coords = pictureManager.getCoords();
-        var pseudoform = new vB_Hidden_Form('profile.php');
-        pseudoform.add_variable('do', "save_picture");
-        pseudoform.add_variable('s', fetch_sessionhash());
-        pseudoform.add_variable('securitytoken', SECURITYTOKEN);
-        pseudoform.add_variable('top', coords.top);
-        pseudoform.add_variable('left', coords.left);
-        pseudoform.add_variable('height', coords.height);
-        pseudoform.add_variable('width', coords.width);
-        pseudoform.submit_form();
+        var selection = pictureManager.getSelectionArea();
+        var form = new vB_Hidden_Form('profile.php');
+        form.add_variable('do', "save_picture");
+        form.add_variable('s', fetch_sessionhash());
+        form.add_variable('securitytoken', SECURITYTOKEN);
+        form.add_variable('top', selection.top);
+        form.add_variable('left', selection.left);
+        form.add_variable('height', selection.height);
+        form.add_variable('width', selection.width);
+        form.submit_form();
     },
 
     /**
-     * Limit selection movement to picture area
+     * Prohibit selection from moving outside of bigpic area
      */
     setConstraints: function() {
         if (this.is_save_locked)
@@ -287,7 +288,7 @@ var pictureManager = {
             fetch_object('app_chkbox_1').disabled = '';
         }
 
-        var resize = this.getCoords();
+        var resize = this.getSelectionArea();
 
         if (resize.left < 0)
         {
@@ -309,12 +310,12 @@ var pictureManager = {
            this.selection.getWrapEl().style.top = (this.img_height - resize.height) + 'px';
         }
 
-        this.setBackgroundPositition(this.selection.getWrapEl().style.left, this.selection.getWrapEl().style.top);
+        this.setSelectionBGPosition(this.selection.getWrapEl().style.left, this.selection.getWrapEl().style.top);
     }
 };
 
 /**
- * Upload the picture
+ * Upload profile big picture
  */
 function APP_Upload_File()
 {
@@ -371,12 +372,12 @@ function APP_Toggle_Button(context)
  */
 function APP_DeletePicture()
 {
-    var pseudoform = new vB_Hidden_Form('profile.php');
-    pseudoform.add_variable('do', 'updateprofilepic');
-    pseudoform.add_variable('s', fetch_sessionhash());
-    pseudoform.add_variable('securitytoken', SECURITYTOKEN);
-    pseudoform.add_variable('deleteprofilepic', 1);
-    pseudoform.submit_form();
+    var form = new vB_Hidden_Form('profile.php');
+    form.add_variable('do', 'updateprofilepic');
+    form.add_variable('s', fetch_sessionhash());
+    form.add_variable('securitytoken', SECURITYTOKEN);
+    form.add_variable('deleteprofilepic', 1);
+    form.submit_form();
 }
 
 /**
