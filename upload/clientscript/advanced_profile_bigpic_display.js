@@ -4,9 +4,14 @@
 var appBigpic = {
 
     /**
-     * selected text
+     * whether bigpic link active or not
      */
-    selected_text: "",
+    is_bigpic_link_active: false,
+
+    /**
+     * bigpic link id
+     */
+    bigpic_link_id: 0,
 
     /**
      * YUI menu obj
@@ -82,14 +87,42 @@ var appBigpic = {
             {
                 continue;
             }
-            YAHOO.util.Event.on(avatar_link, "mouseover", appBigpic.displayMenu, app_pic_paths[i]);
+            var bigpic_id = 'bigpic_link_' + i;
+            // insert icon next to avatar link
+            avatar_link[0].parentNode.insertBefore(string_to_node('<img id="' + bigpic_id + '" class="app_show_bigpic" src="./images/site_icons/search.png"/>'), avatar_link[0].nextSibling);
+            YAHOO.util.Event.on(avatar_link[0], "mouseover", appBigpic.showBigpicLink, bigpic_id);
+            // add inserted element as a parameter
+            YAHOO.util.Event.on(avatar_link[0], "mouseout", setTimeout('appBigpic.removeBigpicLink()',500));
         }
         return true;
     },
 
+    showBigpicLink: function(event, bigpic_link_id) {
+        if (!appBigpic.is_bigpic_link_active)
+        {
+            var bigpic_link = fetch_object(bigpic_link_id);
+            var index = parseInt(bigpic_link_id.replace('bigpic_link_',''));
+            appBigpic.is_bigpic_link_active = true;
+            bigpic_link.style.visibility = 'visible';
+            appBigpic.bigpic_link_id = bigpic_link_id;
+            YAHOO.util.Event.on(bigpic_link, "click", appBigpic.displayMenu, app_pic_paths[index]);
+        }
+    },
+
+    removeBigpicLink: function() {
+        if (appBigpic.bigpic_link_id)
+        {
+            var bigpic_link = fetch_object(appBigpic.bigpic_link_id);
+            appBigpic.is_bigpic_link_active = false;
+            appBigpic.bigpic_link_id = 0;
+            bigpic_link.style.visibility = 'hidden';
+            YAHOO.util.Event.removeListener(bigpic_link, "click", appBigpic.displayMenu);
+        }
+    },
+
     displayMenu: function(event, pic_path) {
         var img = fetch_object("app_bigpic_img");
-        if (img)
+        if (img && appBigpic.is_bigpic_link_active)
         {
             img.src = pic_path;
 

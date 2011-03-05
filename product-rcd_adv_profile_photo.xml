@@ -36,7 +36,7 @@ $db->show_errors();]]></installcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_bigpic_menu_css" templatetype="template" date="1299048618" username="admin" version="0.1"><![CDATA[<style type="text/css">
+		<template name="app_bigpic_menu_css" templatetype="template" date="1299312595" username="admin" version="0.1"><![CDATA[<style type="text/css">
 .app_bigpic_menu {
   padding:none;
   margin:none;
@@ -62,6 +62,13 @@ $db->show_errors();]]></installcode>
 .app_bigpic_menu img {
   padding:{vb:stylevar padding};
   background:{vb:stylevar formrow_background.backgroundColor} bottom repeat-x;
+}
+
+.app_show_bigpic {
+  cursor: pointer;
+  cursor: hand;
+  float:left;
+  visibility:hidden;
 }
 </style>]]></template>
 		<template name="app_bigpic_menu_init_js" templatetype="template" date="1299045144" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
@@ -738,7 +745,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
     $templater = vB_Template::create('app_bigpic_menu_js');
-    $templater->register('version', $version);
+    //$templater->register('version', $version);
     $template_hook['headinclude_javascript'] .= $templater->render();
 
     $templater = vB_Template::create('app_bigpic_menu_css');
