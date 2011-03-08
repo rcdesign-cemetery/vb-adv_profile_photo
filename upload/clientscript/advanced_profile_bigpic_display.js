@@ -14,6 +14,11 @@ var appBigpic = {
     bigpic_link_id: 0,
 
     /**
+     * bigpic link timer
+     */
+    bigpic_link_timer: null,
+
+    /**
      * YUI menu obj
      */
     context_menu: null,
@@ -92,9 +97,14 @@ var appBigpic = {
             avatar_link[0].parentNode.insertBefore(string_to_node('<img id="' + bigpic_id + '" class="app_show_bigpic" src="./images/site_icons/search.png"/>'), avatar_link[0].nextSibling);
             YAHOO.util.Event.on(avatar_link[0], "mouseover", appBigpic.showBigpicLink, bigpic_id);
             // add inserted element as a parameter
-            YAHOO.util.Event.on(avatar_link[0], "mouseout", setTimeout('appBigpic.removeBigpicLink()',500));
+            YAHOO.util.Event.on(avatar_link[0], "mouseout", appBigpic.startBigpicLinkTimer);
         }
         return true;
+    },
+
+    startBigpicLinkTimer: function() {
+        clearTimeout(appBigpic.bigpic_link_timer);
+        appBigpic.bigpic_link_timer = setTimeout('appBigpic.removeBigpicLink()',1000);
     },
 
     showBigpicLink: function(event, bigpic_link_id) {
