@@ -4,14 +4,17 @@
 error_reporting(E_ALL & ~E_NOTICE);
 
 // #################### DEFINE IMPORTANT CONSTANTS #######################
-define('NOSHUTDOWNFUNC', 1);
-define('NOCOOKIES', 1);
 define('THIS_SCRIPT', 'app_preview');
 define('CSRF_PROTECTION', true);
+define('NOHEADER', 1);
+define('NOZIP', 1);
+define('NOCOOKIES', 1);
 define('NOPMPOPUP', 1);
-define('VB_AREA', 'FORUM');
+define('NONOTICES', 1);
+define('NOSHUTDOWNFUNC', 1);
 
-require_once('./includes/init.php');
+// ########################## REQUIRE BACK-END ############################
+require_once('./global.php');
 
 if ($_REQUEST['do'] == 'make_preview' AND $vbulletin->userinfo['userid'] > 0)
 {
@@ -32,9 +35,14 @@ if ($_REQUEST['do'] == 'make_preview' AND $vbulletin->userinfo['userid'] > 0)
     if ($img_editor)
     {
         $img_editor->img_crop_resize_from_src($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $width, $height);
-        $img_editor->unshar_pmask(UNSHARP_MASK_AMOUNT, UNSHARP_MASK_RADIUS, UNSHARP_MASK_THRESHOLD);
+        $img_editor->unshar_pmask();
         $img_editor->round_corner($vbulletin->options['app_corners_radius']);
 
+        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');             // Date in the past
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT'); // always modified
+        header('Cache-Control: no-cache, must-revalidate');           // HTTP/1.1
+        header('Pragma: no-cache');                                   // HTTP/1.0
+        header('Content-transfer-encoding: binary');
         header("Content-type: image/png");
         echo $img_editor->get_img_binary();
     }

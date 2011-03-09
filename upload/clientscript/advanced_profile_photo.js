@@ -267,6 +267,11 @@ var pictureManager = {
      */
     savePicture: function() {
         var selection = pictureManager.getSelectionArea();
+        var allow_fullsize_preview = 0;
+        if (fetch_object('app_chkbox_allow_fullsize').checked)
+        {
+            allow_fullsize_preview = 1;
+        }
         var form = new vB_Hidden_Form('profile.php');
         form.add_variable('do', "save_picture");
         form.add_variable('s', fetch_sessionhash());
@@ -275,6 +280,7 @@ var pictureManager = {
         form.add_variable('left', selection.left);
         form.add_variable('height', selection.height);
         form.add_variable('width', selection.width);
+        form.add_variable("enablepreview", allow_fullsize_preview);
         form.submit_form();
     },
 

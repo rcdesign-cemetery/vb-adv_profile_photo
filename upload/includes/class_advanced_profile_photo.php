@@ -567,6 +567,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
         {
             $this->img_crop_resize_from_src($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $sel_width, $sel_height);
         }
+        $this->unshar_pmask();
         $this->round_corner($vbulletin->options['app_corners_radius']);
 
         $datamanager->set('width', $this->get_width());
@@ -627,8 +628,9 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
      * @param int $sel_height
      * @param int $left
      * @param int $top
+     * @param int $enablepreview enable/disable bigpic preview
      */
-    public function generate_bigpicdata($width, $height, $left, $top)
+    public function generate_bigpicdata($width, $height, $left, $top, $enablepreview)
     {
         global $vbulletin;
 
@@ -638,7 +640,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
                                          `sel_width`= ".$width.", `sel_height`= ".$height.",`width`= ".$this->_src_width.", `height`= ".$this->_src_height);
 
         // mark file as added in the user table
-        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 1 WHERE userid = ". $vbulletin->userinfo['userid']);
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 1, `enablebigpicpreview` = ". $enablepreview ." WHERE userid = ". $vbulletin->userinfo['userid']);
     }
 }
 

@@ -31,8 +31,14 @@ CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "custombigpic (
 )");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicrevision` INT(10) UNSIGNED NOT NULL DEFAULT 0 ");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `isbigpicadded` TINYINT UNSIGNED NOT NULL DEFAULT 0 ");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `enablebigpicpreview` TINYINT UNSIGNED NOT NULL DEFAULT 1 ");
 $db->show_errors();]]></installcode>
-			<uninstallcode />
+			<uninstallcode><![CDATA[$db->hide_errors();
+$vbulletin->db->query_write("DROP TABLE " . TABLE_PREFIX . "custombigpic");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `bigpicrevision`");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `isbigpicadded`");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `enablebigpicpreview`");
+$db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
@@ -85,9 +91,9 @@ appBigpic.init('posts');
 <vb:if condition="!isset($show['yui_animation_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
 </vb:if>]]></template>
-		<template name="app_bigpic_popup_menu" templatetype="template" date="1299058229" username="admin" version="0.1"><![CDATA[<div id="app_bigpic_popup_menu">
+		<template name="app_bigpic_popup_menu" templatetype="template" date="1299652799" username="admin" version="0.1"><![CDATA[<div id="app_bigpic_popup_menu">
  <div class="app_bigpic_menu">
-  <ul class="popupbody">
+  <ul id="app_bigpic_inner_menu" class="popupbody">
    <li><img id="app_bigpic_img" src="" /></li>
   </ul>
  </div>
@@ -247,7 +253,7 @@ var app_pic_paths = [{vb:raw pic_paths}];
     z-index:3;
 }
 </style>]]></template>
-		<template name="app_edit_picture" templatetype="template" date="1299212568" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_edit_picture" templatetype="template" date="1299647833" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -264,6 +270,7 @@ var app_pic_paths = [{vb:raw pic_paths}];
         <vb:if condition="$show['app_editing_options']">
             <div id="app_clear_div" style="width:100%;clear:both;"></div>
             <div class="checkbox_container">
+                <div><input id="app_chkbox_allow_fullsize" type="checkbox" name="app_personality" value="1" <vb:if condition="$vbulletin->userinfo['enablebigpicpreview']">checked="true"</vb:if>>{vb:rawphrase app_allow_fullsize}<br/></div>
                 <div><input id="app_chkbox_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
                 <div id="app_chkbox_div_2" style="visibility:hidden;"><input id="app_chkbox_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
             </div>
@@ -387,6 +394,82 @@ var app_pic_paths = [{vb:raw pic_paths}];
 	</stylevars>
 	<plugins>
 		<plugin active="1" executionorder="5">
+			<title>Moderate profile photos</title>
+			<hookname>admin_maintenance</hookname>
+			<phpcode><![CDATA[// Add option to admin maintenance menu
+if ($_REQUEST['do'] == 'chooser')
+{
+    print_form_header('misc', 'removesmallprofilephoto');
+    print_table_header($vbphrase['app_remove_small_profile_photo'], 2, 0);
+    print_input_row($vbphrase['app_number_of_profilepic_to_process_per_cycle'], 'perpage', 100);
+    print_submit_row($vbphrase['app_remove_small_profile_photo']);
+}
+// Form photos list
+if ($_REQUEST['do'] == 'removesmallprofilephoto')
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'perpage' => TYPE_INT,
+        'lastid' => TYPE_INT,
+        'todeletelist' => TYPE_ARRAY,
+    ));
+    if (!empty($vbulletin->GPC['todeletelist']))
+    {
+        foreach ($vbulletin->GPC['todeletelist'] as $user_id)
+        {
+            // avatar and big pic would be deleted automatically (userpicdata_delete)
+            $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
+            $userpic->condition = "userid = " . $user_id;
+            $userpic->delete();
+            echo 'Deleted profile photo and avatar for user_id =' . $user_id;
+            echo '<br />';
+        }
+        echo '<hr />';
+    }
+    $sql ="SELECT
+              U.userid,
+              U.username
+            FROM
+                " . TABLE_PREFIX . "user             AS U
+            LEFT JOIN
+                " . TABLE_PREFIX . "customprofilepic AS P ON (P.userid = U.userid)
+            WHERE P.width > 0";
+    if ($vbulletin->GPC['lastid'] > 0)
+    {
+        $sql .= "  AND U.userid < " . $vbulletin->GPC['lastid'];
+    }
+    $sql .= "
+            ORDER BY
+                U.userid DESC
+            LIMIT
+                " . $vbulletin->GPC['perpage'];
+    $profilepics = $db->query_read($sql);
+    print_form_header('misc', 'removesmallprofilephoto');
+    $i = 0;
+    while ($profilepic = $db->fetch_array($profilepics))
+    {
+        $userinfo = fetch_userinfo($profilepic['userid']);
+        cache_permissions($userinfo);
+        $img_src = '../' .$vbulletin->options['profilepicurl'] . '/profilepic' . $profilepic['userid'] . '_' . $userinfo['profilepicrevision'] . '.gif';
+        echo '<input type="checkbox" name="todeletelist['. $i.']" value="'. $profilepic['userid'] . '" />';
+        echo '   <img src="'. $img_src . '" />';
+        echo '   <a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $profilepic['username'] . '</a>';
+        echo '<br><br>';
+        $i++;
+    }
+    if (0 < $i)
+    {
+        echo '<input type="hidden" name="lastid" value="'. $userinfo['userid'] . '" />';
+        echo '<input type="hidden" name="perpage" value="'. $vbulletin->GPC['perpage'] . '" />';
+        echo '<input type="submit" value="Next" />';
+    }
+    else
+    {
+        echo '<h1>The end</h1>';
+    }
+    echo '</form>';
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
 			<title><![CDATA[Rebuild avatars & profilepics]]></title>
 			<hookname>admin_maintenance</hookname>
 			<phpcode><![CDATA[//Add option to admin maintenance menu
@@ -493,82 +576,6 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
         define('CP_REDIRECT', 'misc.php');
         print_stop_message('rebuilt_avatar_thumbnails_successfully');
     }
-}]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
-			<title>Moderate profile photos</title>
-			<hookname>admin_maintenance</hookname>
-			<phpcode><![CDATA[// Add option to admin maintenance menu
-if ($_REQUEST['do'] == 'chooser')
-{
-    print_form_header('misc', 'removesmallprofilephoto');
-    print_table_header($vbphrase['app_remove_small_profile_photo'], 2, 0);
-    print_input_row($vbphrase['app_number_of_profilepic_to_process_per_cycle'], 'perpage', 100);
-    print_submit_row($vbphrase['app_remove_small_profile_photo']);
-}
-// Form photos list
-if ($_REQUEST['do'] == 'removesmallprofilephoto')
-{
-    $vbulletin->input->clean_array_gpc('r', array(
-        'perpage' => TYPE_INT,
-        'lastid' => TYPE_INT,
-        'todeletelist' => TYPE_ARRAY,
-    ));
-    if (!empty($vbulletin->GPC['todeletelist']))
-    {
-        foreach ($vbulletin->GPC['todeletelist'] as $user_id)
-        {
-            // avatar and big pic would be deleted automatically (userpicdata_delete)
-            $userpic =& datamanager_init('Userpic_Profilepic', $vbulletin, ERRTYPE_STANDARD, 'userpic');
-            $userpic->condition = "userid = " . $user_id;
-            $userpic->delete();
-            echo 'Deleted profile photo and avatar for user_id =' . $user_id;
-            echo '<br />';
-        }
-        echo '<hr />';
-    }
-    $sql ="SELECT
-              U.userid,
-              U.username
-            FROM
-                " . TABLE_PREFIX . "user             AS U
-            LEFT JOIN
-                " . TABLE_PREFIX . "customprofilepic AS P ON (P.userid = U.userid)
-            WHERE P.width > 0";
-    if ($vbulletin->GPC['lastid'] > 0)
-    {
-        $sql .= "  AND U.userid < " . $vbulletin->GPC['lastid'];
-    }
-    $sql .= "
-            ORDER BY
-                U.userid DESC
-            LIMIT
-                " . $vbulletin->GPC['perpage'];
-    $profilepics = $db->query_read($sql);
-    print_form_header('misc', 'removesmallprofilephoto');
-    $i = 0;
-    while ($profilepic = $db->fetch_array($profilepics))
-    {
-        $userinfo = fetch_userinfo($profilepic['userid']);
-        cache_permissions($userinfo);
-        $img_src = '../' .$vbulletin->options['profilepicurl'] . '/profilepic' . $profilepic['userid'] . '_' . $userinfo['profilepicrevision'] . '.gif';
-        echo '<input type="checkbox" name="todeletelist['. $i.']" value="'. $profilepic['userid'] . '" />';
-        echo '   <img src="'. $img_src . '" />';
-        echo '   <a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $profilepic['username'] . '</a>';
-        echo '<br><br>';
-        $i++;
-    }
-    if (0 < $i)
-    {
-        echo '<input type="hidden" name="lastid" value="'. $userinfo['userid'] . '" />';
-        echo '<input type="hidden" name="perpage" value="'. $vbulletin->GPC['perpage'] . '" />';
-        echo '<input type="submit" value="Next" />';
-    }
-    else
-    {
-        echo '<h1>The end</h1>';
-    }
-    echo '</form>';
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -834,7 +841,8 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
         'top' => TYPE_UINT,
         'left' => TYPE_UINT,
         'height' => TYPE_UINT,
-        'width' => TYPE_UINT
+        'width' => TYPE_UINT,
+        'enablepreview' => TYPE_UINT
     ));
 
     require_once DIR . '/includes/class_advanced_profile_photo.php';
@@ -843,6 +851,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     $top = ($vbulletin->GPC['top'] < 0 ) ? 0 : $vbulletin->GPC['top'];
     $height = ($vbulletin->GPC['height'] > vB_AdvancedProfilePhoto_Store::MAX_HEIGHT) ? vB_AdvancedProfilePhoto_Store::MAX_HEIGHT : $vbulletin->GPC['height'];
     $width = ($vbulletin->GPC['width'] > vB_AdvancedProfilePhoto_Store::MAX_WIDTH) ? vB_AdvancedProfilePhoto_Store::MAX_WIDTH : $vbulletin->GPC['width'];
+    $enablepreview = ($vbulletin->GPC['enablepreview'] == 0 OR $vbulletin->GPC['enablepreview'] == 1) ? $vbulletin->GPC['enablepreview'] : 0;
     $target_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
 
     $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
@@ -850,7 +859,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     {
         $img_editor->generate_avatar($vbulletin->userinfo['userid'], $vbulletin->userinfo['avatarrevision'], $width, $height, $left, $top);
         $img_editor->generate_profilepic($vbulletin->userinfo['userid'], $vbulletin->userinfo['profilepicrevision'], $width, $height, $left, $top);
-        $img_editor->generate_bigpicdata($width, $height, $left, $top);
+        $img_editor->generate_bigpicdata($width, $height, $left, $top, $enablepreview);
     }
     unset($img_editor);
 
@@ -878,7 +887,7 @@ if (!isset($postids_with_big_pic))
     $postids_with_big_pic = array();
 }
 
-if ($post['isbigpicadded'])
+if ($post['isbigpicadded'] AND $post['enablebigpicpreview'])
 {
     $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";
 }]]></phpcode>
@@ -899,7 +908,7 @@ if ($post['isbigpicadded'])
         $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $this->fetch_field('userid'));
 
         // mark file as removed in the user table
-        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0 WHERE userid = ". $this->fetch_field('userid'));
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0, `enablebigpicpreview` = 1 WHERE userid = ". $this->fetch_field('userid'));
 
         if($result = $vbulletin->db->query_first("SELECT bigpicrevision FROM " . TABLE_PREFIX . "user WHERE userid = ". $this->fetch_field('userid')))
         {

@@ -142,7 +142,20 @@ var appBigpic = {
             xy[0] = YAHOO.util.Dom.getX(elem) + elem.offsetWidth + 10;  // horizontal offset
             xy[1] = YAHOO.util.Dom.getY(elem); // vertical offset
 
-            appBigpic.context_menu.cfg.setProperty("xy", xy);
+            // change Y pos in order we can see whole popup
+            var screen_height = YAHOO.util.Dom.getDocumentScrollTop() + YAHOO.util.Dom.getViewportHeight();
+            var popup_height = fetch_object('app_bigpic_inner_menu').offsetHeight;
+            if (xy[1] + popup_height > screen_height)
+            {
+                xy[1] = screen_height - popup_height;
+            }
+
+            if (xy[1] < 0)
+            {
+                xy[1] = 0;
+            }
+
+            appBigpic.context_menu.cfg.setProperty('xy', xy);
             appBigpic.context_menu.show();
         }
     }
