@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "custombigpic (
   `userid` INT UNSIGNED NOT NULL,
   `width` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `height` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
-  `top` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
-  `left` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `sel_top` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
+  `sel_left` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `sel_width` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `sel_height` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0,
   `dateline`  INT NOT NULL DEFAULT 0,
@@ -30,19 +30,19 @@ CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "custombigpic (
   KEY `dateline` (`dateline`, `userid`)
 )");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicrevision` INT(10) UNSIGNED NOT NULL DEFAULT 0 ");
-$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `isbigpicadded` TINYINT UNSIGNED NOT NULL DEFAULT 0 ");
-$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `enablebigpicpreview` TINYINT UNSIGNED NOT NULL DEFAULT 1 ");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicsaved` TINYINT UNSIGNED NOT NULL DEFAULT 0 ");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user ADD COLUMN `bigpicpopup` TINYINT UNSIGNED NOT NULL DEFAULT 1 ");
 $db->show_errors();]]></installcode>
 			<uninstallcode><![CDATA[$db->hide_errors();
 $vbulletin->db->query_write("DROP TABLE " . TABLE_PREFIX . "custombigpic");
 $db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `bigpicrevision`");
-$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `isbigpicadded`");
-$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `enablebigpicpreview`");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `bigpicsaved`");
+$db->query_write("ALTER TABLE " . TABLE_PREFIX . "user DROP COLUMN `bigpicpopup`");
 $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1299647833" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1299735680" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -59,7 +59,7 @@ $db->show_errors();]]></uninstallcode>
         <vb:if condition="$show['app_editing_options']">
             <div id="app_clear_div" style="width:100%;clear:both;"></div>
             <div class="checkbox_container">
-                <div><input id="app_chkbox_allow_fullsize" type="checkbox" name="app_personality" value="1" <vb:if condition="$vbulletin->userinfo['enablebigpicpreview']">checked="true"</vb:if>>{vb:rawphrase app_allow_fullsize}<br/></div>
+                <div><input id="app_chkbox_allow_fullsize" type="checkbox" name="app_personality" value="1" <vb:if condition="$vbulletin->userinfo['bigpicpopup']">checked="true"</vb:if>>{vb:rawphrase app_allow_fullsize}<br/></div>
                 <div><input id="app_chkbox_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
                 <div id="app_chkbox_div_2" style="visibility:hidden;"><input id="app_chkbox_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
             </div>
@@ -511,13 +511,13 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
 
     $avatars = $db->query_read("
     SELECT
-      U.userid, U.isbigpicadded, U.bigpicrevision, U.avatarid, U.avatarrevision, U.profilepicrevision
+      U.userid, U.bigpicsaved, U.bigpicrevision, U.avatarid, U.avatarrevision, U.profilepicrevision
       B.sel_width AS `SelWidth`,B.sel_height AS `SelHeight`,B.top AS `Top`, B.left AS `Left`
     FROM
                 " . TABLE_PREFIX . "user             AS U
       LEFT JOIN " . TABLE_PREFIX . "custombigpic     AS B ON( B.userid = U.userid )
     WHERE
-      U.userid >= " . $vbulletin->GPC['startat'] . " AND U.isbigpicadded = 1
+      U.userid >= " . $vbulletin->GPC['startat'] . " AND U.bigpicsaved = 1
     ORDER BY
       U.userid
     LIMIT
@@ -691,7 +691,7 @@ define('TIMECUTOFF', 7*24*60*60);
 
 // Get all uploaded, but not saved big pics
 $bigpics = $vbulletin->db->query_read("SELECT user.userid, user.bigpicrevision FROM " . TABLE_PREFIX . "custombigpic AS bigpic
-                                       INNER JOIN " . TABLE_PREFIX . "user AS user ON (user.userid = bigpic.userid AND user.isbigpicadded = 0)
+                                       INNER JOIN " . TABLE_PREFIX . "user AS user ON (user.userid = bigpic.userid AND user.bigpicsaved = 0)
                                        WHERE bigpic.dateline >= ". (TIMENOW - TIMECUTOFF));
 
 $userids = array();
@@ -781,7 +781,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     global $page_templater;
     $page_templater = vB_Template::create('app_editor');
     $img_path = '';
-    $bigpic = $db->query_first("SELECT `top`, `left`, `sel_width`, `sel_height`, `width`, `height`
+    $bigpic = $db->query_first("SELECT `sel_top`, `sel_left`, `sel_width`, `sel_height`, `width`, `height`
 			FROM " . TABLE_PREFIX . "custombigpic
 			WHERE userid = " . $vbulletin->userinfo['userid']);
 
@@ -791,8 +791,8 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
         $show['app_editing_options'] = true;
         $img_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
         
-        $page_templater->register('top', $bigpic["top"]);
-        $page_templater->register('left', $bigpic["left"]);
+        $page_templater->register('top', $bigpic["sel_top"]);
+        $page_templater->register('left', $bigpic["sel_left"]);
         $page_templater->register('width', $bigpic["width"]);
         $page_templater->register('height', $bigpic["height"]);
 
@@ -859,6 +859,8 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
         $img_editor->generate_avatar($vbulletin->userinfo['userid'], $vbulletin->userinfo['avatarrevision'], $width, $height, $left, $top);
         $img_editor->generate_profilepic($vbulletin->userinfo['userid'], $vbulletin->userinfo['profilepicrevision'], $width, $height, $left, $top);
         $img_editor->generate_bigpicdata($width, $height, $left, $top, $enablepreview);
+        // save setting to enable/disable bigpic display
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `bigpicpopup` = ". $enablepreview ." WHERE userid = ". $vbulletin->userinfo['userid']); 
     }
     unset($img_editor);
 
@@ -886,7 +888,7 @@ if (!isset($postids_with_big_pic))
     $postids_with_big_pic = array();
 }
 
-if ($post['isbigpicadded'] AND $post['enablebigpicpreview'])
+if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 {
     $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";
 }]]></phpcode>
@@ -898,22 +900,24 @@ if ($post['isbigpicadded'] AND $post['enablebigpicpreview'])
 {
     global $vbulletin;
 
+    // reset to the beginning so we could fetch it again
+    $this->registry->db->data_seek($users, 0);
+    while ($user = $this->registry->db->fetch_array($users))
+    {
+        $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $user['userid']);
+
+        // mark file as removed in the user table
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `bigpicsaved` = 0, `bigpicpopup` = 1 WHERE userid = ". $user['userid']);
+
+        if($result = $vbulletin->db->query_first("SELECT bigpicrevision FROM " . TABLE_PREFIX . "user WHERE userid = ". $user['userid']))
+        {
+           @unlink($vbulletin->options['app_img_folder']."/".$user['userid']."_".$result['bigpicrevision'].".jpg");
+        }
+    }
+
     $userpic =& datamanager_init('Userpic_Avatar', $vbulletin, ERRTYPE_STANDARD, 'userpic');
     $userpic->condition = $this->condition;
     $userpic->delete();
-
-    while ($user = $this->registry->db->fetch_array($users))
-    {
-        $vbulletin->db->query_write("DELETE FROM " . TABLE_PREFIX . "custombigpic WHERE `userid` = ". $this->fetch_field('userid'));
-
-        // mark file as removed in the user table
-        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 0, `enablebigpicpreview` = 1 WHERE userid = ". $this->fetch_field('userid'));
-
-        if($result = $vbulletin->db->query_first("SELECT bigpicrevision FROM " . TABLE_PREFIX . "user WHERE userid = ". $this->fetch_field('userid')))
-        {
-           @unlink($vbulletin->options['app_img_folder']."/".$this->fetch_field('userid')."_".$result['bigpicrevision'].".jpg");
-        }
-    }
 }]]></phpcode>
 		</plugin>
 	</plugins>

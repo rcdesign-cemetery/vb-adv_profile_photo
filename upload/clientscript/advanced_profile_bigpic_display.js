@@ -1,5 +1,5 @@
 /**                                                                                                                                  
- * appPopup: code for inserting selected text into quick-reply form
+ * appPopup: 
  */
 var appPopup = {
 
@@ -26,19 +26,12 @@ var appPopup = {
     /**
      * Container for PostBit_Init function
      */
-    pre_apppopup_postbit_init: null,
-
-    /**
-     * Container for qr_newreply_activate function
-     */
-    pre_apppopup_newreply_activate: null,
+    pre_app_popup_postbit_init: null,
 
     /**
      * onload event handler
-     *
-     * @param string posts_container_id - ID of element which contains all posts
      */
-    init: function(posts_container_id) {
+    init: function() {
         if ( !this.add_handlers() ) {
             return;
         }
@@ -60,12 +53,12 @@ var appPopup = {
         YAHOO.util.Dom.setStyle(YAHOO.util.Dom.getElementsByClassName("popupbody", "*", fetch_object('app_popup_menu')), "display", "block");
 
         // init for AJAX loaded posts (inline edit etc)
-        this.pre_apppopup_postbit_init = PostBit_Init;
+        this.pre_app_popup_postbit_init = PostBit_Init;
         PostBit_Init = function (obj, post_id)
         {
             appPopup.add_handlers(obj);
 
-            appPopup.pre_apppopup_postbit_init(obj, post_id);
+            appPopup.pre_app_popup_postbit_init(obj, post_id);
         }
     },
 
@@ -137,7 +130,7 @@ var appPopup = {
             img.src = pic_path;
 
             var elem = event.srcElement? event.srcElement : event.target;
-            // show menu
+            // show popup
             var xy = YAHOO.util.Event.getXY(event);
             xy[0] = YAHOO.util.Dom.getX(elem) + elem.offsetWidth + 10;  // horizontal offset
             xy[1] = YAHOO.util.Dom.getY(elem); // vertical offset

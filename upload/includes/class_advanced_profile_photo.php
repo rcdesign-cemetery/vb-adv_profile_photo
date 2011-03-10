@@ -88,7 +88,7 @@ class vB_AdvancedProfilePhoto
             case 'image/gif':
                 if (imagetypes() & IMG_GIF)
                 {
-                    $this->_gd_src_image = imagecreatefromgit($src_file);
+                    $this->_gd_src_image = imagecreatefromgif($src_file);
                 }
             break;
             case 'image/jpeg':
@@ -100,7 +100,7 @@ class vB_AdvancedProfilePhoto
             case 'image/png':
                 if (imagetypes() & IMG_PNG)
                 {
-                    $this->_gd_src_image = imageCreateFromPNG($src_file);
+                    $this->_gd_src_image = imagecreatefrompng($src_file);
                 }
             break;
         }
@@ -628,19 +628,18 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
      * @param int $sel_height
      * @param int $left
      * @param int $top
-     * @param int $enablepreview enable/disable bigpic preview
      */
-    public function generate_bigpicdata($width, $height, $left, $top, $enablepreview)
+    public function generate_bigpicdata($width, $height, $left, $top)
     {
         global $vbulletin;
 
         // save selection data to db
         $vbulletin->db->query_write("REPLACE INTO " . TABLE_PREFIX . "custombigpic
-                                     SET `userid` = " . $vbulletin->userinfo['userid'] .", `top` = ".$top.", `left` = ".$left.", `dateline` = ".TIMENOW.",
+                                     SET `userid` = " . $vbulletin->userinfo['userid'] .", `sel_top` = ".$top.", `sel_left` = ".$left.", `dateline` = ".TIMENOW.",
                                          `sel_width`= ".$width.", `sel_height`= ".$height.",`width`= ".$this->_src_width.", `height`= ".$this->_src_height);
 
         // mark file as added in the user table
-        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `isbigpicadded` = 1, `enablebigpicpreview` = ". $enablepreview ." WHERE userid = ". $vbulletin->userinfo['userid']);
+        $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `bigpicsaved` = 1 WHERE userid = ". $vbulletin->userinfo['userid']);
     }
 }
 
