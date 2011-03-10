@@ -42,69 +42,65 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_bigpic_menu_css" templatetype="template" date="1299312595" username="admin" version="0.1"><![CDATA[<style type="text/css">
-.app_bigpic_menu {
-  padding:none;
-  margin:none;
-  width:auto;
-  height:auto;
-  position:absolute;
-}
-
-.app_bigpic_menu ul {
-  -moz-border-radius:{vb:stylevar border_radius};
-  -webkit-border-radius:{vb:stylevar border_radius};
-  direction:ltr;
-  padding:none;
-  margin:none;
-  border:1px solid {vb:stylevar navbar_tab_background.backgroundColor};
-  background:{vb:stylevar navbar_tab_background.backgroundColor};
-  width:auto;
-  min-width:20px;
-  position:absolute;
-  top:50%;
-}
-
-.app_bigpic_menu img {
-  padding:{vb:stylevar padding};
-  background:{vb:stylevar formrow_background.backgroundColor} bottom repeat-x;
-}
-
-.app_show_bigpic {
-  cursor: pointer;
-  cursor: hand;
-  float:left;
-  visibility:hidden;
-}
-</style>]]></template>
-		<template name="app_bigpic_menu_init_js" templatetype="template" date="1299045144" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
-<!--
-appBigpic.init('posts');
-//-->
-</script>]]></template>
-		<template name="app_bigpic_menu_js" templatetype="template" date="1299046470" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_bigpic_display.js?v={vb:raw version}"></script>
-<vb:if condition="!isset($show['yui_menu_exists'])">
-<script type="text/javascript" src="{vb:stylevar yuipath}/yahoo-dom-event/yahoo-dom-event.js?v={vb:raw vboptions.simpleversion}"></script>
-<script type="text/javascript" src="{vb:stylevar yuipath}/container/container_core-min.js?v={vb:raw vboptions.simpleversion}"></script>
-<script type="text/javascript" src="{vb:stylevar yuipath}/menu/menu-min.js?v={vb:raw vboptions.simpleversion}"></script>
-</vb:if>
-<vb:if condition="!isset($show['yui_animation_exists'])">
-<script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
-</vb:if>]]></template>
-		<template name="app_bigpic_popup_menu" templatetype="template" date="1299652799" username="admin" version="0.1"><![CDATA[<div id="app_bigpic_popup_menu">
- <div class="app_bigpic_menu">
-  <ul id="app_bigpic_inner_menu" class="popupbody">
-   <li><img id="app_bigpic_img" src="" /></li>
-  </ul>
- </div>
-</div>
+		<template name="app_editor" templatetype="template" date="1299647833" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+    <vb:if condition="$show['app_editing_options']">
+        <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
+            <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
+        </div>
+    </vb:if>
+    <div style="overflow:hidden;">
+        <div class="source_image_wrapper" id="avatar_img_wrap">
+            <img src="<vb:if condition="$show['app_editing_options']">{vb:raw path}<vb:else />{vb:stylevar imgdir_misc}/profile_nopic.jpg</vb:if>" id="avatar_img" />
+            <vb:if condition="$show['app_editing_options']">
+                <div class="app_resize_mask"></div>
+                <div id="app_resize" class="app_resize"></div>
+            </vb:if>
+        </div>
+        <vb:if condition="$show['app_editing_options']">
+            <div id="app_clear_div" style="width:100%;clear:both;"></div>
+            <div class="checkbox_container">
+                <div><input id="app_chkbox_allow_fullsize" type="checkbox" name="app_personality" value="1" <vb:if condition="$vbulletin->userinfo['enablebigpicpreview']">checked="true"</vb:if>>{vb:rawphrase app_allow_fullsize}<br/></div>
+                <div><input id="app_chkbox_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
+                <div id="app_chkbox_div_2" style="visibility:hidden;"><input id="app_chkbox_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
+            </div>
+        </vb:if>
+        <div class="app_control_links" id="control_buttons_wrap">
+            <form id="app_upload_form" action="ajax.php?do=upload_picture" method="post" enctype="multipart/form-data" target="upload_target" >
+                <a href="#" onclick="return false;" id="app_avatarupload_link">{vb:rawphrase upload}</a>
+                <input id="avatarupload" type="file" class="primary textbox" name="upload" onchange="APP_Upload_File()"/>
+                <input type="hidden" name="s" value="{vb:raw session.sessionhash}" />
+                <input type="hidden" name="securitytoken" value="{vb:raw bbuserinfo.securitytoken}" />
+                <img src="{vb:stylevar imgdir_misc}/progress.gif" alt="" border="0" id="app_progress" style="display:none;"/>
+            </form>
+            <vb:if condition="$show['app_editing_options']">
+                <a href="#" onclick="APP_DeletePicture(); return false;" rel="nofollow" class="app_zindex">{vb:rawphrase delete}</a>
+            </vb:if>
+        </div>
+    </div>
+    <vb:if condition="$show['app_editing_options']">
+        <div id="save_button_wrap" class="button_container">
+            <input id="app_save_button" class="button" type="button" name="submit" value="{vb:rawphrase app_save}" disabled="disabled" onclick="appEditor.savePicture();">
+        </div>
+    </vb:if>
 <script type="text/javascript">
 <!--
-var app_post_ids = [{vb:raw post_ids}];
-var app_pic_paths = [{vb:raw pic_paths}];
-//-->
-</script>]]></template>
-		<template name="app_css" templatetype="template" date="1296442200" username="admin" version="0.1"><![CDATA[<!-- Skin CSS file -->
+<vb:if condition="$show['app_editing_options']">
+    var app_img_width = {vb:raw width};
+    var app_img_height = {vb:raw height};
+    var app_sel_top = {vb:raw top};
+    var app_sel_left = {vb:raw left};
+    var app_sel_width = {vb:raw sel_width};
+    var app_sel_height = {vb:raw sel_height};
+    var app_min_length = {vb:raw min_length};
+<vb:else />
+    var app_img_width = {vb:raw width};
+    var app_img_height = {vb:raw height};
+    APP_CenterImage({vb:raw width});
+</vb:if>
+// -->
+</script>
+</div>]]></template>
+		<template name="app_editor_css" templatetype="template" date="1296442200" username="admin" version="0.1"><![CDATA[<!-- Skin CSS file -->
 <link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/resize.css">
 <link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/imagecropper.css">
 
@@ -253,69 +249,17 @@ var app_pic_paths = [{vb:raw pic_paths}];
     z-index:3;
 }
 </style>]]></template>
-		<template name="app_edit_picture" templatetype="template" date="1299647833" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
-    <vb:if condition="$show['app_editing_options']">
-        <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
-            <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
-        </div>
-    </vb:if>
-    <div style="overflow:hidden;">
-        <div class="source_image_wrapper" id="avatar_img_wrap">
-            <img src="<vb:if condition="$show['app_editing_options']">{vb:raw path}<vb:else />{vb:stylevar imgdir_misc}/profile_nopic.jpg</vb:if>" id="avatar_img" />
-            <vb:if condition="$show['app_editing_options']">
-                <div class="app_resize_mask"></div>
-                <div id="app_resize" class="app_resize"></div>
-            </vb:if>
-        </div>
-        <vb:if condition="$show['app_editing_options']">
-            <div id="app_clear_div" style="width:100%;clear:both;"></div>
-            <div class="checkbox_container">
-                <div><input id="app_chkbox_allow_fullsize" type="checkbox" name="app_personality" value="1" <vb:if condition="$vbulletin->userinfo['enablebigpicpreview']">checked="true"</vb:if>>{vb:rawphrase app_allow_fullsize}<br/></div>
-                <div><input id="app_chkbox_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
-                <div id="app_chkbox_div_2" style="visibility:hidden;"><input id="app_chkbox_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
-            </div>
-        </vb:if>
-        <div class="app_control_links" id="control_buttons_wrap">
-            <form id="app_upload_form" action="ajax.php?do=upload_picture" method="post" enctype="multipart/form-data" target="upload_target" >
-                <a href="#" onclick="return false;" id="app_avatarupload_link">{vb:rawphrase upload}</a>
-                <input id="avatarupload" type="file" class="primary textbox" name="upload" onchange="APP_Upload_File()"/>
-                <input type="hidden" name="s" value="{vb:raw session.sessionhash}" />
-                <input type="hidden" name="securitytoken" value="{vb:raw bbuserinfo.securitytoken}" />
-                <img src="{vb:stylevar imgdir_misc}/progress.gif" alt="" border="0" id="app_progress" style="display:none;"/>
-            </form>
-            <vb:if condition="$show['app_editing_options']">
-                <a href="#" onclick="APP_DeletePicture(); return false;" rel="nofollow" class="app_zindex">{vb:rawphrase delete}</a>
-            </vb:if>
-        </div>
-    </div>
-    <vb:if condition="$show['app_editing_options']">
-        <div id="save_button_wrap" class="button_container">
-            <input id="app_save_button" class="button" type="button" name="submit" value="{vb:rawphrase app_save}" disabled="disabled" onclick="pictureManager.savePicture();">
-        </div>
-    </vb:if>
-<script type="text/javascript">
+		<template name="app_editor_init_js" templatetype="template" date="1299219233" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
 <!--
-<vb:if condition="$show['app_editing_options']">
-    var app_img_width = {vb:raw width};
-    var app_img_height = {vb:raw height};
-    var app_sel_top = {vb:raw top};
-    var app_sel_left = {vb:raw left};
-    var app_sel_width = {vb:raw sel_width};
-    var app_sel_height = {vb:raw sel_height};
-    var app_min_length = {vb:raw min_length};
-<vb:else />
-    var app_img_width = {vb:raw width};
-    var app_img_height = {vb:raw height};
-    APP_CenterImage({vb:raw width});
-</vb:if>
-// -->
-</script>
-</div>]]></template>
-		<template name="app_init_js" templatetype="template" date="1299219233" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
-<!--
-    pictureManager.initPicture();
+    appEditor.initPicture();
 //-->
 </script>]]></template>
+		<template name="app_editor_js" templatetype="template" date="1299219205" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo.js?v={vb:raw version}"></script>
+<script type="text/javascript" src="{vb:stylevar yuipath}/connection/connection.js?v={vb:raw vboptions.simpleversion}"></script>
+<script src="{vb:stylevar yuipath}/dragdrop/dragdrop-min.js?v={vb:raw vboptions.simpleversion}"></script> 
+<script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
+<!-- Source file for the Resize Utility -->
+<script src="{vb:stylevar yuipath}/resize/resize-min.js?v={vb:raw vboptions.simpleversion}"></script>]]></template>
 		<template name="app_init_postdata" templatetype="template" date="1298269398" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
 
 <!--
@@ -326,13 +270,68 @@ var app_pic_paths = [{vb:raw pic_paths}];
 //-->
 
 </script>]]></template>
-		<template name="app_js" templatetype="template" date="1299219205" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo.js?v={vb:raw version}"></script>
-<script type="text/javascript" src="{vb:stylevar yuipath}/connection/connection.js?v={vb:raw vboptions.simpleversion}"></script>
-<script src="{vb:stylevar yuipath}/dragdrop/dragdrop-min.js?v={vb:raw vboptions.simpleversion}"></script> 
-<script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
-<!-- Source file for the Resize Utility -->
-<script src="{vb:stylevar yuipath}/resize/resize-min.js?v={vb:raw vboptions.simpleversion}"></script>]]></template>
-		<template name="app_usercp_shell" templatetype="template" date="1296442187" username="admin" version="0.1"><![CDATA[{vb:stylevar htmldoctype}
+		<template name="app_popup_css" templatetype="template" date="1299723773" username="admin" version="0.1"><![CDATA[<style type="text/css">
+.app_popup {
+  padding:none;
+  margin:none;
+  width:auto;
+  height:auto;
+  position:absolute;
+}
+
+.app_popup ul {
+  -moz-border-radius:{vb:stylevar border_radius};
+  -webkit-border-radius:{vb:stylevar border_radius};
+  direction:ltr;
+  padding:none;
+  margin:none;
+  border:1px solid {vb:stylevar navbar_tab_background.backgroundColor};
+  background:{vb:stylevar navbar_tab_background.backgroundColor};
+  width:auto;
+  position:absolute;
+  top:50%;
+}
+
+.app_popup img {
+  padding:{vb:stylevar padding};
+  background:{vb:stylevar formrow_background.backgroundColor} bottom repeat-x;
+}
+
+.app_popup_link {
+  cursor: pointer;
+  cursor: hand;
+  float:left;
+  visibility:hidden;
+}
+</style>]]></template>
+		<template name="app_popup_init_js" templatetype="template" date="1299045144" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
+<!--
+appPopup.init('posts');
+//-->
+</script>]]></template>
+		<template name="app_popup_js" templatetype="template" date="1299046470" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_bigpic_display.js?v={vb:raw version}"></script>
+<vb:if condition="!isset($show['yui_menu_exists'])">
+<script type="text/javascript" src="{vb:stylevar yuipath}/yahoo-dom-event/yahoo-dom-event.js?v={vb:raw vboptions.simpleversion}"></script>
+<script type="text/javascript" src="{vb:stylevar yuipath}/container/container_core-min.js?v={vb:raw vboptions.simpleversion}"></script>
+<script type="text/javascript" src="{vb:stylevar yuipath}/menu/menu-min.js?v={vb:raw vboptions.simpleversion}"></script>
+</vb:if>
+<vb:if condition="!isset($show['yui_animation_exists'])">
+<script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
+</vb:if>]]></template>
+		<template name="app_popup_menu" templatetype="template" date="1299652799" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
+ <div class="app_popup">
+  <ul id="app_bigpic_inner_menu" class="popupbody">
+   <li><img id="app_bigpic_img" src="" /></li>
+  </ul>
+ </div>
+</div>
+<script type="text/javascript">
+<!--
+var app_post_ids = [{vb:raw post_ids}];
+var app_pic_paths = [{vb:raw pic_paths}];
+//-->
+</script>]]></template>
+		<template name="app_usercp_shell_no_menu" templatetype="template" date="1296442187" username="admin" version="0.1"><![CDATA[{vb:stylevar htmldoctype}
 <html xmlns="http://www.w3.org/1999/xhtml"<vb:if condition="$vboptions['enablefacebookconnect']"> xmlns:fb="http://www.facebook.com/2008/fbml"</vb:if> dir="{vb:stylevar textdirection}" lang="{vb:stylevar languagecode}" id="vbulletin_html">
 <head>
 	{vb:raw headinclude}
@@ -639,7 +638,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
                                      SET `userid` = " . $vbulletin->userinfo['userid'] .",`width`= ". $img_editor->get_width() .", `height` = ". $img_editor->get_height());
 
         $show['app_editing_options'] = true;
-        $templater = vB_Template::create('app_edit_picture');
+        $templater = vB_Template::create('app_editor');
         $templater->register('path', $new_path);
         // create response for ajax
         require_once(DIR . '/includes/class_xml.php');
@@ -664,24 +663,24 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
 			<hookname>cache_templates</hookname>
 			<phpcode><![CDATA[if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
 {
-    $cache[] = 'app_usercp_shell';
-    $cache[] = 'app_edit_picture';
-    $cache[] = 'app_js';
-    $cache[] = 'app_css';
-    $cache[] = 'app_init_js';
+    $cache[] = 'app_usercp_shell_no_menu';
+    $cache[] = 'app_editor';
+    $cache[] = 'app_editor_js';
+    $cache[] = 'app_editor_css';
+    $cache[] = 'app_editor_init_js';
 }
 
 if (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'upload_picture' AND $show['member'])
 {
-    $cache[] = 'app_edit_picture';
+    $cache[] = 'app_editor';
 }
 
 if (THIS_SCRIPT == 'showthread' AND $show['member'])
 {
-    $cache[] = 'app_bigpic_menu_js';
-    $cache[] = 'app_bigpic_menu_css';
-    $cache[] = 'app_bigpic_menu_init_js';
-    $cache[] = 'app_bigpic_popup_menu';
+    $cache[] = 'app_popup_js';
+    $cache[] = 'app_popup_css';
+    $cache[] = 'app_popup_init_js';
+    $cache[] = 'app_popup_menu';
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -725,16 +724,16 @@ $show['avatarlink'] = false;]]></phpcode>
     //define product version and assign it to JS version
     define('APP_VERSION', '0.1');
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
-    $templater = vB_Template::create('app_js');
+    $templater = vB_Template::create('app_editor_js');
     $templater->register('version', $version);
     $template_hook['headinclude_javascript'] .= $templater->render();
 
-    $templater = vB_Template::create('app_css');
+    $templater = vB_Template::create('app_editor_css');
     $templater->register('min_size', $vbulletin->options['app_profile_size']);
     $templater ->register('radius', $vbulletin->options['app_corners_radius']);
     $template_hook['headinclude_bottom_css'] .= $templater->render();
 
-    $templater = vB_Template::create('app_init_js');
+    $templater = vB_Template::create('app_editor_init_js');
     $template_hook['footer_javascript'] .= $templater->render();
 }
 
@@ -751,14 +750,14 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     define('APP_VERSION', '0.1');
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
-    $templater = vB_Template::create('app_bigpic_menu_js');
-    //$templater->register('version', $version);
+    $templater = vB_Template::create('app_popup_js');
+    $templater->register('version', $version);
     $template_hook['headinclude_javascript'] .= $templater->render();
 
-    $templater = vB_Template::create('app_bigpic_menu_css');
+    $templater = vB_Template::create('app_popup_css');
     $template_hook['headinclude_bottom_css'] .= $templater->render();
 
-    $templater = vB_Template::create('app_bigpic_menu_init_js');
+    $templater = vB_Template::create('app_popup_init_js');
     $template_hook['footer_javascript'] .= $templater->render();
 
     if (!$show['yui_menu_exists'])
@@ -777,10 +776,10 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
 			<phpcode><![CDATA[if ($_REQUEST['do'] == 'editprofilepic')
 {
     global $shelltemplatename;
-    $shelltemplatename = 'app_usercp_shell';
+    $shelltemplatename = 'app_usercp_shell_no_menu';
 
     global $page_templater;
-    $page_templater = vB_Template::create('app_edit_picture');
+    $page_templater = vB_Template::create('app_editor');
     $img_path = '';
     $bigpic = $db->query_first("SELECT `top`, `left`, `sel_width`, `sel_height`, `width`, `height`
 			FROM " . TABLE_PREFIX . "custombigpic
@@ -871,7 +870,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
 			<hookname>showthread_complete</hookname>
 			<phpcode><![CDATA[if (isset($postids_with_big_pic) AND !empty($postids_with_big_pic))
 {
-    $templater = vB_Template::create('app_bigpic_popup_menu');
+    $templater = vB_Template::create('app_popup_menu');
     $templater->register('post_ids', implode(",", array_keys($postids_with_big_pic)));
     $templater->register('pic_paths', '"'.implode('","', $postids_with_big_pic).'"');
     $template_hook['app_init_postdata'] = $templater->render();

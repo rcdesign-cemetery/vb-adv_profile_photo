@@ -1,7 +1,7 @@
 /**                                                                                                                                  
- * pictureManager: object to work with big profile pic - select regions, save it
+ * appEditor: object to work with big profile pic - select regions, save it
  */
-var pictureManager = {
+var appEditor = {
 
     /**
      * avatar preview timer
@@ -44,14 +44,14 @@ var pictureManager = {
             return true;
         }
 
-        pictureManager.img_width = app_img_width;
-        pictureManager.img_height = app_img_height;
-        pictureManager.sel_top = app_sel_top;
-        pictureManager.sel_left = app_sel_left;
-        pictureManager.sel_width = app_sel_width;
-        pictureManager.sel_height = app_sel_height;
-        pictureManager.min_sel_length = app_min_length;
-        pictureManager.initEditor();
+        appEditor.img_width = app_img_width;
+        appEditor.img_height = app_img_height;
+        appEditor.sel_top = app_sel_top;
+        appEditor.sel_left = app_sel_left;
+        appEditor.sel_width = app_sel_width;
+        appEditor.sel_height = app_sel_height;
+        appEditor.min_sel_length = app_min_length;
+        appEditor.initEditor();
     },
 
     /**
@@ -86,45 +86,45 @@ var pictureManager = {
                     string_node = result.responseXML.getElementsByTagName('width');
                     if (string_node.length)
                     {
-                        pictureManager.img_width = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.img_width = parseInt(string_node[0].firstChild.nodeValue);
                     }
 
                     string_node = result.responseXML.getElementsByTagName('height');
                     if (string_node.length)
                     {
-                        pictureManager.img_height = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.img_height = parseInt(string_node[0].firstChild.nodeValue);
                     }
 
                     string_node = result.responseXML.getElementsByTagName('top');
                     if (string_node.length)
                     {
-                        pictureManager.sel_top = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.sel_top = parseInt(string_node[0].firstChild.nodeValue);
                     }
 
                     string_node = result.responseXML.getElementsByTagName('left');
                     if (string_node.length)
                     {
-                        pictureManager.sel_left = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.sel_left = parseInt(string_node[0].firstChild.nodeValue);
                     }
 
                     string_node = result.responseXML.getElementsByTagName('sel_width');
                     if (string_node.length)
                     {
-                        pictureManager.sel_width = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.sel_width = parseInt(string_node[0].firstChild.nodeValue);
                     }
 
                     string_node = result.responseXML.getElementsByTagName('sel_height');
                     if (string_node.length)
                     {
-                        pictureManager.sel_height = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.sel_height = parseInt(string_node[0].firstChild.nodeValue);
                     }
 
                     string_node = result.responseXML.getElementsByTagName('min_length');
                     if (string_node.length)
                     {
-                        pictureManager.min_sel_length = parseInt(string_node[0].firstChild.nodeValue);
+                        appEditor.min_sel_length = parseInt(string_node[0].firstChild.nodeValue);
                     }
-                    pictureManager.initEditor();
+                    appEditor.initEditor();
                 }
             }
         }
@@ -197,21 +197,21 @@ var pictureManager = {
         this.selection.getWrapEl().style.left = this.sel_left + 'px';
 
         this.selection.on('endResize', function() {
-            clearTimeout(pictureManager.timer_id);
-            pictureManager.setConstraints();
-            pictureManager.timer_id = setTimeout('pictureManager.requestPreview()',pictureManager.timeout);
+            clearTimeout(appEditor.timer_id);
+            appEditor.setConstraints();
+            appEditor.timer_id = setTimeout('appEditor.requestPreview()',appEditor.timeout);
         });
 
         this.selection.on('resize', function() {
-            clearTimeout(pictureManager.timer_id);
-            pictureManager.setConstraints();
-            pictureManager.timer_id = setTimeout('pictureManager.requestPreview()',pictureManager.timeout);
+            clearTimeout(appEditor.timer_id);
+            appEditor.setConstraints();
+            appEditor.timer_id = setTimeout('appEditor.requestPreview()',appEditor.timeout);
         });
 
         this.selection.on('dragEvent', function() {
-            clearTimeout(pictureManager.timer_id);
-            pictureManager.setConstraints();
-            pictureManager.timer_id = setTimeout('pictureManager.requestPreview()',pictureManager.timeout);
+            clearTimeout(appEditor.timer_id);
+            appEditor.setConstraints();
+            appEditor.timer_id = setTimeout('appEditor.requestPreview()',appEditor.timeout);
         });
 
         // send the request to get avatar preview, based on selection data
@@ -231,7 +231,7 @@ var pictureManager = {
      * @param int top
      */
     setSelectionBGPosition: function(left, top) {
-        pictureManager.selection._wrap.style.backgroundPosition = "-" + left + " -" + top;
+        appEditor.selection._wrap.style.backgroundPosition = "-" + left + " -" + top;
     },
 
     /**
@@ -254,8 +254,8 @@ var pictureManager = {
      * Send request for avatar preview
      */
     requestPreview: function() {
-        clearTimeout(pictureManager.timer_id);
-        var selection = pictureManager.getSelectionArea();
+        clearTimeout(appEditor.timer_id);
+        var selection = appEditor.getSelectionArea();
 
         var results = fetch_object('avatar_img_selection');
         results.src = "app_preview.php?do=make_preview" + "&securitytoken=" + SECURITYTOKEN + "&rnd=" + Math.random() +
@@ -266,7 +266,7 @@ var pictureManager = {
      * Generate avatar/profilepic and save bigpic
      */
     savePicture: function() {
-        var selection = pictureManager.getSelectionArea();
+        var selection = appEditor.getSelectionArea();
         var allow_fullsize_preview = 0;
         if (fetch_object('app_chkbox_allow_fullsize').checked)
         {
@@ -331,7 +331,7 @@ function APP_Upload_File()
     YAHOO.util.Connect.setForm(form_object, true);
     var callback = {
         upload: function(o) {
-          pictureManager.initPictureFromAJAX(o);},
+          appEditor.initPictureFromAJAX(o);},
         failure: vBulletin_AJAX_Error_Handler,
         timeout: vB_Default_Timeout
     };
