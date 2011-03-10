@@ -42,7 +42,7 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1299735680" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1299740292" username="Jannie" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -50,7 +50,7 @@ $db->show_errors();]]></uninstallcode>
     </vb:if>
     <div style="overflow:hidden;">
         <div class="source_image_wrapper" id="avatar_img_wrap">
-            <img src="<vb:if condition="$show['app_editing_options']">{vb:raw path}<vb:else />{vb:stylevar imgdir_misc}/profile_nopic.jpg</vb:if>" id="avatar_img" />
+            <img src="<vb:if condition="$show['app_editing_options']">{vb:raw path}<vb:else />{vb:stylevar imgdir_misc}/profile_nopic.png</vb:if>" id="avatar_img" />
             <vb:if condition="$show['app_editing_options']">
                 <div class="app_resize_mask"></div>
                 <div id="app_resize" class="app_resize"></div>
@@ -729,7 +729,7 @@ $show['avatarlink'] = false;]]></phpcode>
     $template_hook['headinclude_javascript'] .= $templater->render();
 
     $templater = vB_Template::create('app_editor_css');
-    $templater->register('min_size', $vbulletin->options['app_profile_size']);
+    $templater->register('min_size', $vbulletin->options['app_avatar_size']);
     $templater ->register('radius', $vbulletin->options['app_corners_radius']);
     $template_hook['headinclude_bottom_css'] .= $templater->render();
 
@@ -813,7 +813,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     else
     {
         $show['app_editing_options'] = false;
-        $imgsize = getimagesize("images/misc/profile_nopic.jpg");
+        $imgsize = getimagesize("images/misc/profile_nopic.png");
         // DON'T REMOVE. We are sending width to template to center div.
         // Later this width would be changed with new uploaded image (by AJAX). That is why we don't hardcode width in css
         $page_templater->register('width', $imgsize[0]);
