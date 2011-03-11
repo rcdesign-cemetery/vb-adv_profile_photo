@@ -42,7 +42,7 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1299740292" username="Jannie" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1299827543" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -60,8 +60,8 @@ $db->show_errors();]]></uninstallcode>
             <div id="app_clear_div" style="width:100%;clear:both;"></div>
             <div class="checkbox_container">
                 <div><input id="app_chkbox_allow_fullsize" type="checkbox" name="app_personality" value="1" <vb:if condition="$vbulletin->userinfo['bigpicpopup']">checked="true"</vb:if>>{vb:rawphrase app_allow_fullsize}<br/></div>
-                <div><input id="app_chkbox_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
-                <div id="app_chkbox_div_2" style="visibility:hidden;"><input id="app_chkbox_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
+                <div><input id="app_chkbox_confirm_1" type="checkbox" name="app_personality" value="1" disabled='disabled' onclick="APP_Toggle_Next(this);">{vb:rawphrase app_confirm_photo}<br/></div>
+                <div id="app_chkbox_confirm_div_2" style="visibility:hidden;"><input id="app_chkbox_confirm_2" type="checkbox" name="app_face_recognition" value="2" onclick="APP_Toggle_Button(this);">{vb:rawphrase app_confirm_photo_face}</div>
             </div>
         </vb:if>
         <div class="app_control_links" id="control_buttons_wrap">
@@ -260,13 +260,12 @@ $db->show_errors();]]></uninstallcode>
 <script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
 <!-- Source file for the Resize Utility -->
 <script src="{vb:stylevar yuipath}/resize/resize-min.js?v={vb:raw vboptions.simpleversion}"></script>]]></template>
-		<template name="app_init_postdata" templatetype="template" date="1298269398" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
+		<template name="app_init_postdata" templatetype="template" date="1299827864" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
 
 <!--
 
-    var app_postids = {vb:raw app_postids};
+    var app_item_ids = {vb:raw app_postids};
     var app_path = {vb:raw app_path};
-    APP_Init_BigPics('posts');
 //-->
 
 </script>]]></template>
@@ -318,10 +317,10 @@ appPopup.init('posts');
 <vb:if condition="!isset($show['yui_animation_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
 </vb:if>]]></template>
-		<template name="app_popup_menu" templatetype="template" date="1299652799" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
+		<template name="app_popup_menu" templatetype="template" date="1299827766" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
  <div class="app_popup">
-  <ul id="app_bigpic_inner_menu" class="popupbody">
-   <li><img id="app_bigpic_img" src="" /></li>
+  <ul id="app_popup_inner_menu" class="popupbody">
+   <li><img id="app_popup_img" src="" /></li>
   </ul>
  </div>
 </div>
@@ -942,17 +941,17 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 			<phrase name="app_remove_small_profile_photo" date="1296528487" username="admin" version=""><![CDATA[Remove small profile photo]]></phrase>
 		</phrasetype>
 		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
-			<phrase name="setting_app_avatar_size_desc" date="1297759283" username="Vitaly" version="0.1"><![CDATA[Enter avatar size (max height/width) in pixels.]]></phrase>
-			<phrase name="setting_app_avatar_size_title" date="1297759283" username="Vitaly" version="0.1"><![CDATA[Generated avatar size]]></phrase>
-			<phrase name="setting_app_corners_radius_desc" date="1297759394" username="Vitaly" version="0.1"><![CDATA[Set 0 to disable.]]></phrase>
-			<phrase name="setting_app_corners_radius_title" date="1297759394" username="Vitaly" version="0.1"><![CDATA[Avatar corners radius, pixels]]></phrase>
-			<phrase name="setting_app_img_folder_desc" date="1297759337" username="Vitaly" version="0.1"><![CDATA[Folder to store uploaded big pictures. This file path should be readable AND writeable by your web server (usually chmod 0777).]]></phrase>
-			<phrase name="setting_app_img_folder_title" date="1297759337" username="Vitaly" version="0.1"><![CDATA[Custom folder for big profile images]]></phrase>
-			<phrase name="setting_app_profile_size_desc" date="1297759563" username="Jannie" version="0.1"><![CDATA[Enter profile picture size (max height/width) in pixels.]]></phrase>
-			<phrase name="setting_app_profile_size_title" date="1297759563" username="Jannie" version="0.1"><![CDATA[Generated profilepic size]]></phrase>
-			<phrase name="setting_app_selection_change_desc" date="1297759473" username="Jannie" version="0.1"><![CDATA[Selection is changed by jerks when you start it from the smallest value. This is done for better picture resizing. Please specify several steps in pixels.]]></phrase>
-			<phrase name="setting_app_selection_change_title" date="1297759473" username="Jannie" version="0.1"><![CDATA[Selection change]]></phrase>
-			<phrase name="settinggroup_app_settings" date="1294637173" username="admin" version="0.1"><![CDATA[Profile & avatar editing]]></phrase>
+			<phrase name="setting_app_avatar_size_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Enter avatar size (max height/width) in pixels.]]></phrase>
+			<phrase name="setting_app_avatar_size_title" date="1299827966" username="admin" version="0.1"><![CDATA[Generated avatar size]]></phrase>
+			<phrase name="setting_app_corners_radius_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Set 0 to disable.]]></phrase>
+			<phrase name="setting_app_corners_radius_title" date="1299827966" username="admin" version="0.1"><![CDATA[Avatar corners radius, pixels]]></phrase>
+			<phrase name="setting_app_img_folder_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Folder to store uploaded big pictures. This file path should be readable AND writeable by your web server (usually chmod 0777).]]></phrase>
+			<phrase name="setting_app_img_folder_title" date="1299827966" username="admin" version="0.1"><![CDATA[Custom folder for big profile images]]></phrase>
+			<phrase name="setting_app_profile_size_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Enter profile picture size (max height/width) in pixels.]]></phrase>
+			<phrase name="setting_app_profile_size_title" date="1299827966" username="admin" version="0.1"><![CDATA[Generated profilepic size]]></phrase>
+			<phrase name="setting_app_selection_change_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Selection is changed by jerks when you start it from the smallest value. This is done for better picture resizing. Please specify several steps in pixels.]]></phrase>
+			<phrase name="setting_app_selection_change_title" date="1299827966" username="admin" version="0.1"><![CDATA[Selection change]]></phrase>
+			<phrase name="settinggroup_app_settings" date="1299827966" username="admin" version="0.1"><![CDATA[Advanced Profile Photo]]></phrase>
 		</phrasetype>
 	</phrases>
 	<options>

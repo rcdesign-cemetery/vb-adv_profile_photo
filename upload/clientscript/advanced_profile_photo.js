@@ -6,33 +6,33 @@ var appEditor = {
     /**
      * avatar preview timer
      */
-    timer_id:null,
-    timeout:500,
+    timer_id: null,
+    timeout: 500,
 
     /**
      * selection object
      */
-    selection:null,
+    selection: null,
 
     /**
      * source image dimensions
      */
-    img_width:0,
-    img_height:0,
+    img_width: 0,
+    img_height: 0,
 
     /**
      * selection data
      */
-    sel_top:0,
-    sel_left:0,
-    sel_width:0,
-    sel_height:0,
-    min_sel_length:0,
+    sel_top: 0,
+    sel_left: 0,
+    sel_width: 0,
+    sel_height: 0,
+    min_sel_length: 0,
 
     /**
      * lock save button till user does something with selection
      */
-    is_save_locked:true,
+    is_save_locked: true,
 
     /**
      * Object constructor. Called for all cases, except AJAX upload
@@ -350,9 +350,9 @@ function APP_Toggle_Next(context)
         visibility = '';
     }
 
-    if (context.id == 'app_chkbox_1')
+    if (context.id == 'app_chkbox_confirm_1')
     {
-        var second_chkbox = fetch_object('app_chkbox_div_2');
+        var second_chkbox = fetch_object('app_chkbox_confirm_div_2');
         second_chkbox.style.visibility = visibility;
     }
 
