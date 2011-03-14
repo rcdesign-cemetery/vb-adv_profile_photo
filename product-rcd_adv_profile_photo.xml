@@ -42,9 +42,9 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1299827543" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1300068289" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
-        <div id="app_avatar_result_wrapper" class="avatar_result_wrapper">{vb:rawphrase app_result}
+        <div id="app_avatar_result_wrapper" class="avatar_result_wrapper"><p>{vb:rawphrase app_result}</p>
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
         </div>
     </vb:if>
@@ -100,7 +100,7 @@ $db->show_errors();]]></uninstallcode>
 // -->
 </script>
 </div>]]></template>
-		<template name="app_editor_css" templatetype="template" date="1296442200" username="admin" version="0.1"><![CDATA[<!-- Skin CSS file -->
+		<template name="app_editor_css" templatetype="template" date="1300068273" username="admin" version="0.1"><![CDATA[<!-- Skin CSS file -->
 <link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/resize.css">
 <link rel="stylesheet" type="text/css" href="{vb:stylevar yuipath}/assets/skins/sam/imagecropper.css">
 
@@ -164,11 +164,14 @@ $db->show_errors();]]></uninstallcode>
     padding:{vb:stylevar padding};
     margin-top:{vb:stylevar padding};
     background-color: white;
+    text-align:center;
+}
+
+.avatar_result_wrapper p {
+    text-align:left;
 }
 
 .avatar_result_wrapper img {
-    width:{vb:raw min_size}px;
-    height:{vb:raw min_size}px;
     overflow:hidden;
 }
 
@@ -260,15 +263,6 @@ $db->show_errors();]]></uninstallcode>
 <script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
 <!-- Source file for the Resize Utility -->
 <script src="{vb:stylevar yuipath}/resize/resize-min.js?v={vb:raw vboptions.simpleversion}"></script>]]></template>
-		<template name="app_init_postdata" templatetype="template" date="1299827864" username="admin" version="0.1"><![CDATA[<script type="text/javascript">
-
-<!--
-
-    var app_item_ids = {vb:raw app_postids};
-    var app_path = {vb:raw app_path};
-//-->
-
-</script>]]></template>
 		<template name="app_popup_css" templatetype="template" date="1299723773" username="admin" version="0.1"><![CDATA[<style type="text/css">
 .app_popup {
   padding:none;
@@ -317,7 +311,7 @@ appPopup.init('posts');
 <vb:if condition="!isset($show['yui_animation_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
 </vb:if>]]></template>
-		<template name="app_popup_menu" templatetype="template" date="1299827766" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
+		<template name="app_popup_menu" templatetype="template" date="1300070706" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
  <div class="app_popup">
   <ul id="app_popup_inner_menu" class="popupbody">
    <li><img id="app_popup_img" src="" /></li>
@@ -326,8 +320,8 @@ appPopup.init('posts');
 </div>
 <script type="text/javascript">
 <!--
-var app_post_ids = [{vb:raw post_ids}];
-var app_pic_paths = [{vb:raw pic_paths}];
+    var app_item_ids = [{vb:raw post_ids}];
+    var app_pic_paths = [{vb:raw pic_paths}];
 //-->
 </script>]]></template>
 		<template name="app_usercp_shell_no_menu" templatetype="template" date="1296442187" username="admin" version="0.1"><![CDATA[{vb:stylevar htmldoctype}
@@ -736,13 +730,6 @@ $show['avatarlink'] = false;]]></phpcode>
     $template_hook['footer_javascript'] .= $templater->render();
 }
 
-if (THIS_SCRIPT == 'showthread' AND array_key_exists('SHOWTHREAD', $vbulletin->templatecache) AND $show['member'])
-{
-    $search = '. $template_hook[\'showthread_below_posts\'] .';
-    $replace = '. $template_hook[\'app_init_postdata\']' . $search;
-    $vbulletin->templatecache['SHOWTHREAD'] = str_replace($search, $replace, $vbulletin->templatecache['SHOWTHREAD']); 
-}
-
 if (THIS_SCRIPT == 'showthread' AND $show['member'])
 {
     //define product version and assign it to JS version
@@ -750,7 +737,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
     $templater = vB_Template::create('app_popup_js');
-    $templater->register('version', $version);
+    //$templater->register('version', $version);
     $template_hook['headinclude_javascript'] .= $templater->render();
 
     $templater = vB_Template::create('app_popup_css');
@@ -874,7 +861,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     $templater = vB_Template::create('app_popup_menu');
     $templater->register('post_ids', implode(",", array_keys($postids_with_big_pic)));
     $templater->register('pic_paths', '"'.implode('","', $postids_with_big_pic).'"');
-    $template_hook['app_init_postdata'] = $templater->render();
+    $template_hook['showthread_below_posts'] .= $templater->render();
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">

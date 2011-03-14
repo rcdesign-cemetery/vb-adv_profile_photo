@@ -88,7 +88,7 @@ var appPopup = {
             var popup_id = 'popup_link_' + i;
             // insert icon next to avatar link
             avatar_link[0].parentNode.insertBefore(string_to_node('<img id="' + popup_id + '" class="app_popup_link" src="./images/site_icons/search.png"/>'), avatar_link[0].nextSibling);
-            YAHOO.util.Event.on(avatar_link[0], "mouseover", appPopup.showpopupLink, popup_id);
+            YAHOO.util.Event.on(avatar_link[0], "mouseover", appPopup.showPopupLink, popup_id);
             // add inserted element as a parameter
             YAHOO.util.Event.on(avatar_link[0], "mouseout", appPopup.startPopupLinkTimer);
         }

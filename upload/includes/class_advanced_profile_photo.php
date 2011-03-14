@@ -157,7 +157,6 @@ class vB_AdvancedProfilePhoto
 
     /**
      * Crop part of source image based on selection data, then resize it to specified width/height.
-     * We assume selection data and resulting width/height are proportional, so do not add aspect ratio stuff.
      *
      * @param int $width width of resulting image
      * @param int $height height of resulting image
@@ -169,12 +168,28 @@ class vB_AdvancedProfilePhoto
      */
     public function img_crop_resize_from_src($width, $height, $left, $top, $sel_w, $sel_h)
     {
-        $gd_temp = imagecreatetruecolor($width, $height);
+        // if selection is smaller then width - do not resize
+        if ($sel_w < $width AND $sel_h < $height)
+        {
+            $new_width = $sel_w;
+            $new_height = $sel_h;
+        }
+        else
+        {
+            $x_ratio = $width / $sel_w;
+            $y_ratio = $height / $sel_h;
+
+            $ratio = min($x_ratio , $y_ratio);
+
+            $new_width = floor($sel_w * $ratio);
+            $new_height = floor($sel_h * $ratio);
+        }
+        $gd_temp = imagecreatetruecolor($new_width, $new_height);
 
         imagecolortransparent($gd_temp, -1);
 
         imagefill($gd_temp , 0 , 0 , 0xFFFFFF);
-        imagecopyresampled($gd_temp, $this->_gd_src_image, 0, 0, $left, $top, $width , $height , $sel_w, $sel_h);
+        imagecopyresampled($gd_temp, $this->_gd_src_image, 0, 0, $left, $top, $new_width , $new_height , $sel_w, $sel_h);
 
         // destroy old resource
         if ($this->_gd_resulting_image)

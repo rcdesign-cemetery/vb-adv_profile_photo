@@ -291,7 +291,7 @@ var appEditor = {
         if (this.is_save_locked)
         {
             this.is_save_locked = false;
-            fetch_object('app_chkbox_1').disabled = '';
+            fetch_object('app_chkbox_confirm_1').disabled = '';
         }
 
         var resize = this.getSelectionArea();
