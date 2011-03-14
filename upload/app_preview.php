@@ -16,7 +16,7 @@ define('NOSHUTDOWNFUNC', 1);
 // ########################## REQUIRE BACK-END ############################
 require_once('./global.php');
 
-if ($_REQUEST['do'] == 'make_preview' AND $vbulletin->userinfo['userid'] > 0)
+if ($_REQUEST['do'] == 'make_preview' AND $show['member'])
 {
     $vbulletin->input->clean_array_gpc('r', array(
         'top' => TYPE_UINT,
@@ -45,6 +45,12 @@ if ($_REQUEST['do'] == 'make_preview' AND $vbulletin->userinfo['userid'] > 0)
         header('Content-transfer-encoding: binary');
         header("Content-type: image/png");
         echo $img_editor->get_img_binary();
+        exit;
     }
 }
+
+// by default return cleargif
+header("Content-type: image/png");
+$clear_gif = new vB_AdvancedProfilePhoto($vbulletin->options['cleargifurl']);
+echo $clear_gif->get_img_binary();
 ?>

@@ -168,7 +168,7 @@ class vB_AdvancedProfilePhoto
      */
     public function img_crop_resize_from_src($width, $height, $left, $top, $sel_w, $sel_h)
     {
-        // if selection is smaller then width - do not resize
+        // if selection is smaller than width - do not resize
         if ($sel_w < $width AND $sel_h < $height)
         {
             $new_width = $sel_w;

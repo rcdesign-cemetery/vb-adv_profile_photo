@@ -263,7 +263,7 @@ $db->show_errors();]]></uninstallcode>
 <script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
 <!-- Source file for the Resize Utility -->
 <script src="{vb:stylevar yuipath}/resize/resize-min.js?v={vb:raw vboptions.simpleversion}"></script>]]></template>
-		<template name="app_popup_css" templatetype="template" date="1299723773" username="admin" version="0.1"><![CDATA[<style type="text/css">
+		<template name="app_popup_css" templatetype="template" date="1300084898" username="admin" version="0.1"><![CDATA[<style type="text/css">
 .app_popup {
   padding:none;
   margin:none;
@@ -276,13 +276,13 @@ $db->show_errors();]]></uninstallcode>
   -moz-border-radius:{vb:stylevar border_radius};
   -webkit-border-radius:{vb:stylevar border_radius};
   direction:ltr;
-  padding:none;
   margin:none;
   border:1px solid {vb:stylevar navbar_tab_background.backgroundColor};
   background:{vb:stylevar navbar_tab_background.backgroundColor};
   width:auto;
   position:absolute;
   top:50%;
+  padding:{vb:stylevar popupmenu_padding};
 }
 
 .app_popup img {
@@ -311,9 +311,9 @@ appPopup.init('posts');
 <vb:if condition="!isset($show['yui_animation_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
 </vb:if>]]></template>
-		<template name="app_popup_menu" templatetype="template" date="1300070706" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
+		<template name="app_popup_menu" templatetype="template" date="1300084849" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
  <div class="app_popup">
-  <ul id="app_popup_inner_menu" class="popupbody">
+  <ul id="app_popup_inner_menu">
    <li><img id="app_popup_img" src="" /></li>
   </ul>
  </div>
@@ -321,7 +321,8 @@ appPopup.init('posts');
 <script type="text/javascript">
 <!--
     var app_item_ids = [{vb:raw post_ids}];
-    var app_pic_paths = [{vb:raw pic_paths}];
+    var app_pic_names = [{vb:raw pic_paths}];
+    var app_pic_path = "{vb:raw pic_folder}";
 //-->
 </script>]]></template>
 		<template name="app_usercp_shell_no_menu" templatetype="template" date="1296442187" username="admin" version="0.1"><![CDATA[{vb:stylevar htmldoctype}
@@ -619,6 +620,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
         }
 
         $new_path = $vbulletin->options['app_img_folder']."/". $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg";
+        $new_url = $vbulletin->options['app_img_url']."/". $vbulletin->userinfo['userid']."_".($vbulletin->userinfo['bigpicrevision'] + 1).".jpg";
         $img_editor->save_to_file($new_path);
         @unlink($tmp_file_path);
 
@@ -632,7 +634,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
 
         $show['app_editing_options'] = true;
         $templater = vB_Template::create('app_editor');
-        $templater->register('path', $new_path);
+        $templater->register('path', $new_url);
         // create response for ajax
         require_once(DIR . '/includes/class_xml.php');
 
@@ -737,7 +739,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
     $templater = vB_Template::create('app_popup_js');
-    //$templater->register('version', $version);
+    $templater->register('version', $version);
     $template_hook['headinclude_javascript'] .= $templater->render();
 
     $templater = vB_Template::create('app_popup_css');
@@ -775,7 +777,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     if ($show['profilepic'] AND $bigpic)
     {
         $show['app_editing_options'] = true;
-        $img_path = $vbulletin->options['app_img_folder']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
+        $img_path = $vbulletin->options['app_img_url']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
         
         $page_templater->register('top', $bigpic["sel_top"]);
         $page_templater->register('left', $bigpic["sel_left"]);
@@ -861,6 +863,7 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     $templater = vB_Template::create('app_popup_menu');
     $templater->register('post_ids', implode(",", array_keys($postids_with_big_pic)));
     $templater->register('pic_paths', '"'.implode('","', $postids_with_big_pic).'"');
+    $templater->register('pic_folder', $vbulletin->options['app_img_url']."/");
     $template_hook['showthread_below_posts'] .= $templater->render();
 }]]></phpcode>
 		</plugin>
@@ -876,7 +879,7 @@ if (!isset($postids_with_big_pic))
 
 if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 {
-    $postids_with_big_pic[$post['postid']] = $vbulletin->options['app_img_folder']."/".$post['userid']."_".$post['bigpicrevision'].".jpg";
+    $postids_with_big_pic[$post['postid']] = $post['userid']."_".$post['bigpicrevision'].".jpg";
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -934,6 +937,8 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 			<phrase name="setting_app_corners_radius_title" date="1299827966" username="admin" version="0.1"><![CDATA[Avatar corners radius, pixels]]></phrase>
 			<phrase name="setting_app_img_folder_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Folder to store uploaded big pictures. This file path should be readable AND writeable by your web server (usually chmod 0777).]]></phrase>
 			<phrase name="setting_app_img_folder_title" date="1299827966" username="admin" version="0.1"><![CDATA[Custom folder for big profile images]]></phrase>
+			<phrase name="setting_app_img_url_desc" date="1300084301" username="admin" version="0.1"><![CDATA[Relative to your forums home page]]></phrase>
+			<phrase name="setting_app_img_url_title" date="1300084301" username="admin" version="0.1"><![CDATA[URL to custom big profile pics]]></phrase>
 			<phrase name="setting_app_profile_size_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Enter profile picture size (max height/width) in pixels.]]></phrase>
 			<phrase name="setting_app_profile_size_title" date="1299827966" username="admin" version="0.1"><![CDATA[Generated profilepic size]]></phrase>
 			<phrase name="setting_app_selection_change_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Selection is changed by jerks when you start it from the smallest value. This is done for better picture resizing. Please specify several steps in pixels.]]></phrase>
@@ -950,6 +955,10 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 			<setting varname="app_avatar_size" displayorder="10">
 				<datatype>posint</datatype>
 				<defaultvalue>120</defaultvalue>
+			</setting>
+			<setting varname="app_img_url" displayorder="10">
+				<datatype>free</datatype>
+				<defaultvalue>custombigprofilepics</defaultvalue>
 			</setting>
 			<setting varname="app_profile_size" displayorder="20">
 				<datatype>posint</datatype>
