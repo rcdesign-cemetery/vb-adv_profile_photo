@@ -168,12 +168,15 @@ class vB_AdvancedProfilePhoto
      */
     public function img_crop_resize_from_src($width, $height, $left, $top, $sel_w, $sel_h)
     {
-        // if selection is smaller than width - do not resize
+        $new_width = 0; $new_height = 0;
+        // if a piece we crop from big image (sel_w/sel_h) is smaller then desired image size,
+        // set desired size to cropped piece
         if ($sel_w < $width AND $sel_h < $height)
         {
             $new_width = $sel_w;
             $new_height = $sel_h;
         }
+        // cropped region (sel_w/sel_h) could have different aspect ratio than desired width/height
         else
         {
             $x_ratio = $width / $sel_w;

@@ -387,6 +387,115 @@ appPopup.init('posts');
 	</stylevars>
 	<plugins>
 		<plugin active="1" executionorder="5">
+			<title><![CDATA[Rebuild avatars & profilepics]]></title>
+			<hookname>admin_maintenance</hookname>
+			<phpcode><![CDATA[//Add option to admin maintenance menu
+if ($_REQUEST['do'] == 'chooser')
+{
+    print_form_header('misc', 'rebuildprofileimageavatars');
+    print_table_header($vbphrase['app_rebuild_profile_photo_avatar_thumbnails'], 2, 0);
+    print_input_row($vbphrase['app_number_of_pics_to_process_per_cycle'], 'perpage', 200);
+    print_yes_no_row($vbphrase['app_include_automatic_javascript_redirect'], 'autoredirect', 1);
+    print_submit_row($vbphrase['app_rebuild_profile_photo_avatar_thumbnails']);
+}
+
+// Rebuild avatars
+if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
+{
+    $vbulletin->input->clean_array_gpc('r', array(
+        'autoredirect' => TYPE_BOOL,
+    ));
+
+    if (($memory_limit = ini_size_to_bytes(@ini_get('memory_limit'))) < 128 * 1024 * 1024 AND $memory_limit > 0)
+    {
+        @ini_set('memory_limit', 128 * 1024 * 1024);
+    }
+
+    if ($vbulletin->options['imagetype'] != 'Magick' AND !function_exists('imagetypes'))
+    {
+        print_stop_message('your_version_no_image_support');
+    }
+
+    if (empty($vbulletin->GPC['perpage']))
+    {
+        $vbulletin->GPC['perpage'] = 20;
+    }
+
+    if (!$vbulletin->GPC['startat'])
+    {
+      $firstattach = $db->query_first("SELECT MIN(userid) AS min FROM " . TABLE_PREFIX . "user");
+      $vbulletin->GPC['startat'] = intval($firstattach['min']);
+    }
+
+    $avatars = $db->query_read("
+    SELECT
+      U.userid, U.bigpicsaved, U.bigpicrevision, U.avatarid, U.avatarrevision, U.profilepicrevision,
+      B.sel_width AS `SelWidth`,B.sel_height AS `SelHeight`,B.sel_top AS `Top`, B.sel_left AS `Left`
+    FROM
+                " . TABLE_PREFIX . "user             AS U
+      LEFT JOIN " . TABLE_PREFIX . "custombigpic     AS B ON( B.userid = U.userid )
+    WHERE
+     U.userid >= " . $vbulletin->GPC['startat'] . " AND U.bigpicsaved = 1
+    ORDER BY
+      U.userid
+    LIMIT
+      " . $vbulletin->GPC['perpage']
+    );
+
+    $finishat = $vbulletin->GPC['startat'];
+
+    while ($avatar = $db->fetch_array($avatars))
+    {
+        // if user has predefined avatar (not custom) - delete it
+        if ($avatar['avatarid'] > 0)
+        {
+            $_userinfo = fetch_userinfo($avatar['userid']);
+            $userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
+            $userdata->set_existing($_userinfo);
+            $userdata->set('avatarid', 0);
+            $userdata->save();
+
+            unset($userdata);
+        }
+
+        require_once DIR . '/includes/class_advanced_profile_photo.php';
+        $target_path = $vbulletin->options['app_img_folder']."/".$avatar['userid']."_".$avatar['bigpicrevision'].".jpg";
+
+        $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
+        if ($img_editor)
+        {
+            $img_editor->generate_avatar($avatar['userid'], $avatar['avatarrevision'], $avatar['SelWidth'], $avatar['SelHeight'], $avatar['Left'], $avatar['Top']);
+            $img_editor->generate_profilepic($avatar['userid'], $avatar['profilepicrevision'], $avatar['SelWidth'], $avatar['SelHeight'], $avatar['Left'], $avatar['Top']);
+        }
+        else
+        {
+            error_log("Unable to open user's big pic on path " . $target_path);
+        }
+        unset($img_editor);
+
+        vbflush();
+
+        $finishat = ($avatar['userid'] > $finishat ? $avatar['userid'] : $finishat);
+        unset($_userinfo);
+    }
+
+    $finishat++;
+    if ($checkmore = $db->query_first("SELECT userid FROM " . TABLE_PREFIX . "user WHERE userid >= $finishat LIMIT 1"))
+    {
+        if ($vbulletin->GPC['autoredirect'] == 1)
+        {
+            print_cp_redirect("misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=rebuildprofileimageavatars&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . "&amp;autoredirect=1");
+        }
+        echo "<p><a href=\"misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=rebuildprofileimageavatars&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . '">' . $vbphrase['click_here_to_continue_processing'] . "</a></p>";
+    }
+    else
+    {
+        define('CP_REDIRECT', 'misc.php');
+        print_stop_message('rebuilt_avatar_thumbnails_successfully');
+    }
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
 			<title>Moderate profile photos</title>
 			<hookname>admin_maintenance</hookname>
 			<phpcode><![CDATA[// Add option to admin maintenance menu
@@ -460,115 +569,6 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         echo '<h1>The end</h1>';
     }
     echo '</form>';
-}]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
-			<title><![CDATA[Rebuild avatars & profilepics]]></title>
-			<hookname>admin_maintenance</hookname>
-			<phpcode><![CDATA[//Add option to admin maintenance menu
-if ($_REQUEST['do'] == 'chooser')
-{
-    print_form_header('misc', 'rebuildprofileimageavatars');
-    print_table_header($vbphrase['app_rebuild_profile_photo_avatar_thumbnails'], 2, 0);
-    print_input_row($vbphrase['app_number_of_avatars_to_process_per_cycle'], 'perpage', 200);
-    print_yes_no_row($vbphrase['app_include_automatic_javascript_redirect'], 'autoredirect', 1);
-    print_submit_row($vbphrase['app_rebuild_profile_photo_avatar_thumbnails']);
-}
-
-// Rebuild avatars
-if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
-{
-    $vbulletin->input->clean_array_gpc('r', array(
-        'autoredirect' => TYPE_BOOL,
-    ));
-
-    if (($memory_limit = ini_size_to_bytes(@ini_get('memory_limit'))) < 128 * 1024 * 1024 AND $memory_limit > 0)
-    {
-        @ini_set('memory_limit', 128 * 1024 * 1024);
-    }
-
-    if ($vbulletin->options['imagetype'] != 'Magick' AND !function_exists('imagetypes'))
-    {
-        print_stop_message('your_version_no_image_support');
-    }
-
-    if (empty($vbulletin->GPC['perpage']))
-    {
-        $vbulletin->GPC['perpage'] = 20;
-    }
-
-    if (!$vbulletin->GPC['startat'])
-    {
-      $firstattach = $db->query_first("SELECT MIN(userid) AS min FROM " . TABLE_PREFIX . "user");
-      $vbulletin->GPC['startat'] = intval($firstattach['min']);
-    }
-
-    $avatars = $db->query_read("
-    SELECT
-      U.userid, U.bigpicsaved, U.bigpicrevision, U.avatarid, U.avatarrevision, U.profilepicrevision
-      B.sel_width AS `SelWidth`,B.sel_height AS `SelHeight`,B.top AS `Top`, B.left AS `Left`
-    FROM
-                " . TABLE_PREFIX . "user             AS U
-      LEFT JOIN " . TABLE_PREFIX . "custombigpic     AS B ON( B.userid = U.userid )
-    WHERE
-      U.userid >= " . $vbulletin->GPC['startat'] . " AND U.bigpicsaved = 1
-    ORDER BY
-      U.userid
-    LIMIT
-      " . $vbulletin->GPC['perpage']
-    );
-
-    $finishat = $vbulletin->GPC['startat'];
-
-    while ($avatar = $db->fetch_array($avatars))
-    {
-        // if user has predefined avatar (not custom) - delete it
-        if ($avatar['avatarid'] > 0)
-        {
-            $_userinfo = fetch_userinfo($avatar['userid']);
-            $userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
-            $userdata->set_existing($_userinfo);
-            $userdata->set('avatarid', 0);
-            $userdata->save();
-
-            unset($userdata);
-        }
-
-        require_once DIR . '/includes/class_advanced_profile_photo.php';
-        $target_path = $vbulletin->options['app_img_folder']."/".$avatar['userid']."_".$avatar['bigpicrevision'].".jpg";
-
-        $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
-        if ($img_editor)
-        {
-            $img_editor->generate_avatar($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
-            $img_editor->generate_profilepic($avatar['userid'], $avatar['bigpicrevision'], $width, $height, $left, $top);
-        }
-        else
-        {
-            error_log("Unable to open user's big pic on path " . $target_path);
-        }
-        unset($img_editor);
-
-        vbflush();
-
-        $finishat = ($avatar['userid'] > $finishat ? $avatar['userid'] : $finishat);
-        unset($_userinfo);
-    }
-
-    $finishat++;
-    if ($checkmore = $db->query_first("SELECT userid FROM " . TABLE_PREFIX . "user WHERE userid >= $finishat LIMIT 1"))
-    {
-        if ($vbulletin->GPC['autoredirect'] == 1)
-        {
-            print_cp_redirect("misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=rebuildprofileimageavatars&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . "&amp;autoredirect=1");
-        }
-        echo "<p><a href=\"misc.php?" . $vbulletin->session->vars['sessionurl'] . "do=rebuildprofileimageavatars&amp;startat=$finishat&amp;pp=" . $vbulletin->GPC['perpage'] . '">' . $vbphrase['click_here_to_continue_processing'] . "</a></p>";
-    }
-    else
-    {
-        define('CP_REDIRECT', 'misc.php');
-        print_stop_message('rebuilt_avatar_thumbnails_successfully');
-    }
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -812,14 +812,6 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
-			<title>Deny avatar edit</title>
-			<hookname>profile_start</hookname>
-			<phpcode><![CDATA[if (($_POST['do'] == 'updateavatar') OR ($_REQUEST['do'] == 'editavatar'))
-{
-    $vbulletin->options['avatarenabled'] = false;
-}]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
 			<title>Save pictures</title>
 			<hookname>profile_start</hookname>
 			<phpcode><![CDATA[if ($_POST['do'] == 'save_picture' AND $show['member'])
@@ -846,13 +838,21 @@ if (THIS_SCRIPT == 'showthread' AND $show['member'])
     {
         $img_editor->generate_avatar($vbulletin->userinfo['userid'], $vbulletin->userinfo['avatarrevision'], $width, $height, $left, $top);
         $img_editor->generate_profilepic($vbulletin->userinfo['userid'], $vbulletin->userinfo['profilepicrevision'], $width, $height, $left, $top);
-        $img_editor->generate_bigpicdata($width, $height, $left, $top, $enablepreview);
+        $img_editor->generate_bigpicdata($width, $height, $left, $top);
         // save setting to enable/disable bigpic display
         $vbulletin->db->query_write("UPDATE " . TABLE_PREFIX . "user SET `bigpicpopup` = ". $enablepreview ." WHERE userid = ". $vbulletin->userinfo['userid']); 
     }
     unset($img_editor);
 
     eval(print_standard_redirect('redirect_updatethanks', true, true));
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Deny avatar edit</title>
+			<hookname>profile_start</hookname>
+			<phpcode><![CDATA[if (($_POST['do'] == 'updateavatar') OR ($_REQUEST['do'] == 'editavatar'))
+{
+    $vbulletin->options['avatarenabled'] = false;
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -926,8 +926,9 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 		<phrasetype name="Maintenance Tools" fieldname="maintenance">
 			<phrase name="app_include_automatic_javascript_redirect" date="1297746847" username="admin" version=""><![CDATA[Include automatic javascript redirect]]></phrase>
 			<phrase name="app_list_of_small_profile_photo" date="1296528391" username="admin" version=""><![CDATA[List of small profile photo]]></phrase>
+			<phrase name="app_number_of_pics_to_process_per_cycle" date="1300174277" username="admin" version=""><![CDATA[Number of pics to regenerate per cycle]]></phrase>
 			<phrase name="app_number_of_profilepic_to_process_per_cycle" date="1296528418" username="admin" version=""><![CDATA[Number of profile picture to process per cycle]]></phrase>
-			<phrase name="app_rebuild_profile_photo_avatar_thumbnails" date="1297752731" username="Jannie" version=""><![CDATA[Rebuild Profile Photo Avatar Thumbnails]]></phrase>
+			<phrase name="app_rebuild_profile_photo_avatar_thumbnails" date="1300174299" username="admin" version=""><![CDATA[Rebuild Profile Photos & Avatars from big pics]]></phrase>
 			<phrase name="app_remove_small_profile_photo" date="1296528487" username="admin" version=""><![CDATA[Remove small profile photo]]></phrase>
 		</phrasetype>
 		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
