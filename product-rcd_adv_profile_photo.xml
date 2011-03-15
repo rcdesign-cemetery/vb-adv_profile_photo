@@ -717,7 +717,7 @@ $show['avatarlink'] = false;]]></phpcode>
 			<phpcode><![CDATA[if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
 {
     //define product version and assign it to JS version
-    define('APP_VERSION', '0.1');
+    define('APP_VERSION', '0.1b');
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     $templater = vB_Template::create('app_editor_js');
     $templater->register('version', $version);
@@ -735,7 +735,7 @@ $show['avatarlink'] = false;]]></phpcode>
 if (THIS_SCRIPT == 'showthread' AND $show['member'])
 {
     //define product version and assign it to JS version
-    define('APP_VERSION', '0.1');
+    define('APP_VERSION', '0.1b');
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
     $templater = vB_Template::create('app_popup_js');
