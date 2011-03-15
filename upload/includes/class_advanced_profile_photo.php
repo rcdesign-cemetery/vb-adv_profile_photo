@@ -169,7 +169,7 @@ class vB_AdvancedProfilePhoto
     public function img_crop_resize_from_src($width, $height, $left, $top, $sel_w, $sel_h)
     {
         $new_width = 0; $new_height = 0;
-        // if a piece we crop from big image (sel_w/sel_h) is smaller then desired image size,
+        // if a piece we crop from big image (sel_w/sel_h) is smaller then desired image size (width/height),
         // set desired size to cropped piece
         if ($sel_w < $width AND $sel_h < $height)
         {
@@ -626,6 +626,7 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
         {
             $this->img_crop_resize_from_src($vbulletin->options['app_profile_size'], $vbulletin->options['app_profile_size'], $left, $top, $sel_width, $sel_height);
         }
+        $this->unshar_pmask();
 
         $datamanager->set('width', $this->get_width());
         $datamanager->set('height', $this->get_height());

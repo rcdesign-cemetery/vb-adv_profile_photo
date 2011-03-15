@@ -427,7 +427,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
       $vbulletin->GPC['startat'] = intval($firstattach['min']);
     }
 
-    $avatars = $db->query_read("
+    $userpics = $db->query_read("
     SELECT
       U.userid, U.bigpicsaved, U.bigpicrevision, U.avatarid, U.avatarrevision, U.profilepicrevision,
       B.sel_width AS `SelWidth`,B.sel_height AS `SelHeight`,B.sel_top AS `Top`, B.sel_left AS `Left`
@@ -444,12 +444,12 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
 
     $finishat = $vbulletin->GPC['startat'];
 
-    while ($avatar = $db->fetch_array($avatars))
+    while ($userpic = $db->fetch_array($userpics))
     {
         // if user has predefined avatar (not custom) - delete it
-        if ($avatar['avatarid'] > 0)
+        if ($userpic['avatarid'] > 0)
         {
-            $_userinfo = fetch_userinfo($avatar['userid']);
+            $_userinfo = fetch_userinfo($userpic['userid']);
             $userdata =& datamanager_init('User', $vbulletin, ERRTYPE_STANDARD);
             $userdata->set_existing($_userinfo);
             $userdata->set('avatarid', 0);
@@ -459,13 +459,13 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
         }
 
         require_once DIR . '/includes/class_advanced_profile_photo.php';
-        $target_path = $vbulletin->options['app_img_folder']."/".$avatar['userid']."_".$avatar['bigpicrevision'].".jpg";
+        $target_path = $vbulletin->options['app_img_folder']."/".$userpic['userid']."_".$userpic['bigpicrevision'].".jpg";
 
         $img_editor = new vB_AdvancedProfilePhoto_Store($target_path);
         if ($img_editor)
         {
-            $img_editor->generate_avatar($avatar['userid'], $avatar['avatarrevision'], $avatar['SelWidth'], $avatar['SelHeight'], $avatar['Left'], $avatar['Top']);
-            $img_editor->generate_profilepic($avatar['userid'], $avatar['profilepicrevision'], $avatar['SelWidth'], $avatar['SelHeight'], $avatar['Left'], $avatar['Top']);
+            $img_editor->generate_avatar($userpic['userid'], $userpic['avatarrevision'], $userpic['SelWidth'], $userpic['SelHeight'], $userpic['Left'], $userpic['Top']);
+            $img_editor->generate_profilepic($userpic['userid'], $userpic['profilepicrevision'], $userpic['SelWidth'], $userpic['SelHeight'], $userpic['Left'], $userpic['Top']);
         }
         else
         {
@@ -475,7 +475,7 @@ if ($_REQUEST['do'] == 'rebuildprofileimageavatars')
 
         vbflush();
 
-        $finishat = ($avatar['userid'] > $finishat ? $avatar['userid'] : $finishat);
+        $finishat = ($userpic['userid'] > $finishat ? $userpic['userid'] : $finishat);
         unset($_userinfo);
     }
 
@@ -714,10 +714,11 @@ $show['avatarlink'] = false;]]></phpcode>
 		<plugin active="1" executionorder="5">
 			<title>Insert js and css</title>
 			<hookname>parse_templates</hookname>
-			<phpcode><![CDATA[if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
+			<phpcode><![CDATA[//define product version and assign it to JS version
+define('APP_VERSION', '0.1b');
+
+if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
 {
-    //define product version and assign it to JS version
-    define('APP_VERSION', '0.1b');
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     $templater = vB_Template::create('app_editor_js');
     $templater->register('version', $version);
@@ -734,8 +735,6 @@ $show['avatarlink'] = false;]]></phpcode>
 
 if (THIS_SCRIPT == 'showthread' AND $show['member'])
 {
-    //define product version and assign it to JS version
-    define('APP_VERSION', '0.1b');
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
     $templater = vB_Template::create('app_popup_js');
