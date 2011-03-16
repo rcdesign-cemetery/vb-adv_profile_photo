@@ -169,15 +169,22 @@ class vB_AdvancedProfilePhoto
     public function img_crop_resize_from_src($width, $height, $left, $top, $sel_w, $sel_h)
     {
         $new_width = 0; $new_height = 0;
-        // if a piece we crop from big image (sel_w/sel_h) is smaller then desired image size (width/height),
-        // set desired size to cropped piece
-        if ($sel_w < $width AND $sel_h < $height)
+
+        // if selection is invalid set it to image size
+        if ($sel_w > $this->_src_width OR $sel_h > $this->_src_height OR $sel_w <= 0 OR $sel_h <= 0)
         {
-            $new_width = $sel_w;
-            $new_height = $sel_h;
+            $sel_w = $this->_src_width;
+            $sel_h = $this->_src_height;
+        }
+
+        // if a big image is smaller than desired image size (width/height), do not resize it
+        if ($this->_src_width < $width OR $this->_src_height < $height)
+        {
+            $new_width = $this->_src_width;
+            $new_height = $this->_src_height;
         }
         // cropped region (sel_w/sel_h) could have different aspect ratio than desired width/height
-        else
+        if ($sel_w >= $width OR $sel_h >= $height)
         {
             $x_ratio = $width / $sel_w;
             $y_ratio = $height / $sel_h;
@@ -395,7 +402,7 @@ class vB_AdvancedProfilePhoto
 	*
 	* @return	void
 	*/
-	function unshar_pmask($amount = 50, $radius = 1, $threshold = 0)
+	function unsharp_mask($amount = 50, $radius = 1, $threshold = 0)
 	{
 		// $finalimg is an image that is already created within php using
 		// imgcreatetruecolor. No url! $img must be a truecolor image.
@@ -581,11 +588,8 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
         // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename is given by DM
         $datamanager->set('filename', 'avatar' . $userinfo['userid'] . '.gif');
 
-        if ($vbulletin->options['app_avatar_size'] < $this->_src_width OR $vbulletin->options['app_avatar_size'] < $this->_src_height)
-        {
-            $this->img_crop_resize_from_src($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $sel_width, $sel_height);
-        }
-        $this->unshar_pmask();
+        $this->img_crop_resize_from_src($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $sel_width, $sel_height);
+        $this->unsharp_mask();
         $this->round_corner($vbulletin->options['app_corners_radius']);
 
         $datamanager->set('width', $this->get_width());
@@ -622,11 +626,8 @@ class vB_AdvancedProfilePhoto_Store extends vB_AdvancedProfilePhoto {
         // gif is not an error, but hardcoded in vbulletin. This name is used only for db storage, real filename is given by DM
         $datamanager->set('filename', 'profilepic' . $userinfo['userid'] . '.gif');
 
-        if ($vbulletin->options['app_profile_size'] < $this->_src_width OR $vbulletin->options['app_profile_size'] < $this->_src_height)
-        {
-            $this->img_crop_resize_from_src($vbulletin->options['app_profile_size'], $vbulletin->options['app_profile_size'], $left, $top, $sel_width, $sel_height);
-        }
-        $this->unshar_pmask();
+        $this->img_crop_resize_from_src($vbulletin->options['app_profile_size'], $vbulletin->options['app_profile_size'], $left, $top, $sel_width, $sel_height);
+        $this->unsharp_mask();
 
         $datamanager->set('width', $this->get_width());
         $datamanager->set('height', $this->get_height());

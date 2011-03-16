@@ -35,7 +35,7 @@ if ($_REQUEST['do'] == 'make_preview' AND $show['member'])
     if ($img_editor)
     {
         $img_editor->img_crop_resize_from_src($vbulletin->options['app_avatar_size'], $vbulletin->options['app_avatar_size'], $left, $top, $width, $height);
-        $img_editor->unshar_pmask();
+        $img_editor->unsharp_mask();
         $img_editor->round_corner($vbulletin->options['app_corners_radius']);
 
         header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');             // Date in the past
