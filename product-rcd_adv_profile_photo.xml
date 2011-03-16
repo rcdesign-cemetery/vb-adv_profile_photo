@@ -715,7 +715,7 @@ $show['avatarlink'] = false;]]></phpcode>
 			<title>Insert js and css</title>
 			<hookname>parse_templates</hookname>
 			<phpcode><![CDATA[//define product version and assign it to JS version
-define('APP_VERSION', '0.1b');
+define('APP_VERSION', '0.1c');
 
 if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
 {

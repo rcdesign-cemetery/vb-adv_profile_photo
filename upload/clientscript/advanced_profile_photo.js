@@ -330,6 +330,8 @@ var appEditor = {
  */
 function APP_Upload_File()
 {
+    // set especially to 120 seconds, as uploading of big files can take a lot of time
+    var ajax_timeout = 120000;
     var progress = fetch_object('app_progress');
     progress.style.display = '';
     var form_object = fetch_object('app_upload_form');
@@ -338,7 +340,7 @@ function APP_Upload_File()
         upload: function(o) {
           appEditor.initPictureFromAJAX(o);},
         failure: vBulletin_AJAX_Error_Handler,
-        timeout: vB_Default_Timeout
+        timeout: ajax_timeout
     };
 
     var connection = YAHOO.util.Connect.asyncRequest('POST', 'ajax.php', callback, 'do=upload_picture');
