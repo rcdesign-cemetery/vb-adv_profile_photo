@@ -77,7 +77,12 @@ var appEditor = {
                     var string_node = result.responseXML.getElementsByTagName('image_html');
                     if (string_node.length)
                     {
-                        var edit_result = string_to_node(string_node[0].firstChild.nodeValue);
+                        var node = '';
+                        for(var i=0; i<string_node[0].childNodes.length; i++)
+                        {
+                            node += string_node[0].childNodes[i].nodeValue;
+                        }
+                        var edit_result = string_to_node(node);
                         var form_object = fetch_object('app_main_wrapper');
                         form_object.parentNode.replaceChild(edit_result, form_object);
                     }
@@ -220,7 +225,7 @@ var appEditor = {
         {
             // unlock save button as selection is locked
             this.is_save_locked = false;
-            fetch_object('app_chkbox_1').disabled = '';
+            fetch_object('app_chkbox_confirm_1').disabled = '';
             this.selection.lock();
         }
     },
