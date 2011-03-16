@@ -170,30 +170,35 @@ class vB_AdvancedProfilePhoto
     {
         $new_width = 0; $new_height = 0;
 
-        // if selection is invalid set it to image size
-        if ($sel_w > $this->_src_width OR $sel_h > $this->_src_height OR $sel_w <= 0 OR $sel_h <= 0)
+        // set invalid selection it to real image size
+        if ($sel_w > $this->_src_width OR $sel_w <= 0)
         {
             $sel_w = $this->_src_width;
+        }
+
+        if ($sel_h > $this->_src_height OR $sel_h <= 0)
+        {
             $sel_h = $this->_src_height;
         }
 
-        // if a big image is smaller than desired image size (width/height), do not resize it
-        if ($this->_src_width < $width OR $this->_src_height < $height)
-        {
-            $new_width = $this->_src_width;
-            $new_height = $this->_src_height;
-        }
         // cropped region (sel_w/sel_h) could have different aspect ratio than desired width/height
-        if ($sel_w >= $width OR $sel_h >= $height)
+        $x_ratio = $width / $sel_w;
+        $y_ratio = $height / $sel_h;
+
+        $ratio = min($x_ratio , $y_ratio);
+
+        // if width/height we are resizing to is bigger than selection sel_w/sel_h, set image size to selection
+        if ($ratio >= 1)
         {
-            $x_ratio = $width / $sel_w;
-            $y_ratio = $height / $sel_h;
-
-            $ratio = min($x_ratio , $y_ratio);
-
+            $new_width = $sel_w;
+            $new_height = $sel_h;
+        }
+        else
+        {
             $new_width = floor($sel_w * $ratio);
             $new_height = floor($sel_h * $ratio);
         }
+
         $gd_temp = imagecreatetruecolor($new_width, $new_height);
 
         imagecolortransparent($gd_temp, -1);
