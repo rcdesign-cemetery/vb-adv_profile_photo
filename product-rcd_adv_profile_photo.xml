@@ -42,7 +42,7 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1300068289" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1300267488" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper"><p>{vb:rawphrase app_result}</p>
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -69,6 +69,7 @@ $db->show_errors();]]></uninstallcode>
                 <a href="#" onclick="return false;" id="app_avatarupload_link">{vb:rawphrase upload}</a>
                 <input id="avatarupload" type="file" class="primary textbox" name="upload" onchange="APP_Upload_File()"/>
                 <input type="hidden" name="s" value="{vb:raw session.sessionhash}" />
+                <input type="hidden" name="ajax" value="1" />
                 <input type="hidden" name="securitytoken" value="{vb:raw bbuserinfo.securitytoken}" />
                 <img src="{vb:stylevar imgdir_misc}/progress.gif" alt="" border="0" id="app_progress" style="display:none;"/>
             </form>
