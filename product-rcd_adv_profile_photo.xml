@@ -312,12 +312,8 @@ appPopup.init('posts');
 <vb:if condition="!isset($show['yui_animation_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
 </vb:if>]]></template>
-		<template name="app_popup_menu" templatetype="template" date="1300084849" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
- <div class="app_popup">
-  <ul id="app_popup_inner_menu">
-   <li><img id="app_popup_img" src="" /></li>
-  </ul>
- </div>
+		<template name="app_popup_menu" templatetype="template" date="1300338290" username="Jannie" version="0.1"><![CDATA[<div id="app_popup_menu">
+<div class="app_popup"><ul id="app_popup_inner_menu"><li><img id="app_popup_img" src="" /></li></ul></div>
 </div>
 <script type="text/javascript">
 <!--
@@ -671,7 +667,7 @@ if (THIS_SCRIPT == 'ajax' AND $_POST['do'] == 'upload_picture' AND $show['member
     $cache[] = 'app_editor';
 }
 
-if (THIS_SCRIPT == 'showthread' AND $show['member'])
+if (THIS_SCRIPT == 'showthread')
 {
     $cache[] = 'app_popup_js';
     $cache[] = 'app_popup_css';
@@ -734,7 +730,7 @@ if (THIS_SCRIPT == 'profile' AND $_REQUEST['do'] == 'editprofilepic')
     $template_hook['footer_javascript'] .= $templater->render();
 }
 
-if (THIS_SCRIPT == 'showthread' AND $show['member'])
+if (THIS_SCRIPT == 'showthread')
 {
     $version = (!$vbulletin->debug) ? APP_VERSION : TIMENOW;
     
