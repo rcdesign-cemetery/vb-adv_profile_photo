@@ -42,7 +42,7 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1300267488" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1300425029" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper"><p>{vb:rawphrase app_result}</p>
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -85,7 +85,7 @@ $db->show_errors();]]></uninstallcode>
     </vb:if>
 <script type="text/javascript">
 <!--
-<vb:if condition="$show['app_editing_options']">
+<vb:if condition="isset($show['app_not_ajax_saved_pic']) AND $show['app_not_ajax_saved_pic']">
     var app_img_width = {vb:raw width};
     var app_img_height = {vb:raw height};
     var app_sel_top = {vb:raw top};
@@ -93,7 +93,8 @@ $db->show_errors();]]></uninstallcode>
     var app_sel_width = {vb:raw sel_width};
     var app_sel_height = {vb:raw sel_height};
     var app_min_length = {vb:raw min_length};
-<vb:else />
+</vb:if>
+<vb:if condition="isset($show['app_not_ajax_no_pic']) AND $show['app_not_ajax_no_pic']">
     var app_img_width = {vb:raw width};
     var app_img_height = {vb:raw height};
     APP_CenterImage({vb:raw width});
@@ -312,8 +313,10 @@ appPopup.init('posts');
 <vb:if condition="!isset($show['yui_animation_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/animation/animation-min.js?v={vb:raw vboptions.simpleversion}"></script>
 </vb:if>]]></template>
-		<template name="app_popup_menu" templatetype="template" date="1300338290" username="Jannie" version="0.1"><![CDATA[<div id="app_popup_menu">
-<div class="app_popup"><ul id="app_popup_inner_menu"><li><img id="app_popup_img" src="" /></li></ul></div>
+		<template name="app_popup_menu" templatetype="template" date="1300338169" username="admin" version="0.1"><![CDATA[<div id="app_popup_menu">
+ <div class="app_popup">
+  <ul id="app_popup_inner_menu"><li><img id="app_popup_img" src="" /></li></ul>
+ </div>
 </div>
 <script type="text/javascript">
 <!--
@@ -629,6 +632,64 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         $vbulletin->db->query_write("REPLACE INTO " . TABLE_PREFIX . "custombigpic
                                      SET `userid` = " . $vbulletin->userinfo['userid'] .",`width`= ". $img_editor->get_width() .", `height` = ". $img_editor->get_height());
 
+
+        $left = 0; $top = 0;
+        // Face detect
+        $faces = face_detect($new_path, 'haarcascades/haarcascade_frontalface_alt.xml');
+
+        if (!is_array($faces) OR empty($faces))
+        {
+        }
+        else if (count($faces) > 1)
+        {
+        }
+        else
+        {
+            $left = $faces[0]['x'];
+            $top = $faces[0]['y'];
+            $selection_width = $faces[0]['w'];
+            $selection_height = $faces[0]['h'];
+
+            // we will scale at least to min selection size
+            $sel_scale_size = $min_size;
+            // if selection size is bigger than min_size, we will increase the area 20%,
+            // because hairs and chin could be cropped. If selection is smaller, then scale to min_size
+            if ($selection_width >= $sel_scale_size AND $selection_height >= $sel_scale_size)
+            {
+                $sel_scale_size = ceil(min($selection_width, $selection_height) * 1.2);
+            }
+
+            // scale x
+            $part = ceil(($sel_scale_size - $selection_width)/2);
+            $left-= $part;
+            $selection_width = $sel_scale_size;
+
+            if ($left < 0)
+            {
+                $left = 0;
+            }
+
+            if ($left + $selection_width > $img_width)
+            {
+                $left = $img_width - $selection_width;
+            }
+
+            // scale y
+            $part = ceil(($sel_scale_size - $selection_height)/2);
+            $top-= $part;
+            $selection_height = $sel_scale_size;
+
+            if ($top < 0)
+            {
+                $top = 0;
+            }
+
+            if ($top + $selection_height > $img_height)
+            {
+                $top = $img_height - $selection_height;
+            }
+        }
+
         $show['app_editing_options'] = true;
         $templater = vB_Template::create('app_editor');
         $templater->register('path', $new_url);
@@ -640,8 +701,8 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         $xml->add_tag('image_html', $templater->render());
         $xml->add_tag('width', $img_editor->get_width());
         $xml->add_tag('height', $img_editor->get_height());
-        $xml->add_tag('top', 0);
-        $xml->add_tag('left', 0);
+        $xml->add_tag('top', $top);
+        $xml->add_tag('left', $left);
         $xml->add_tag('sel_width', $selection_width);
         $xml->add_tag('sel_height', $selection_height);
         $xml->add_tag('min_length', $min_size);     
@@ -773,6 +834,7 @@ if (THIS_SCRIPT == 'showthread')
     if ($show['profilepic'] AND $bigpic)
     {
         $show['app_editing_options'] = true;
+        $show['app_not_ajax_saved_pic'] = true;
         $img_path = $vbulletin->options['app_img_url']."/".$vbulletin->userinfo['userid']."_".$vbulletin->userinfo['bigpicrevision'].".jpg";
         
         $page_templater->register('top', $bigpic["sel_top"]);
@@ -797,6 +859,7 @@ if (THIS_SCRIPT == 'showthread')
     else
     {
         $show['app_editing_options'] = false;
+        $show['app_not_ajax_no_pic'] = true;
         $imgsize = getimagesize("images/misc/profile_nopic.png");
         // DON'T REMOVE. We are sending width to template to center div.
         // Later this width would be changed with new uploaded image (by AJAX). That is why we don't hardcode width in css

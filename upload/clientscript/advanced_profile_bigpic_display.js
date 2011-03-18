@@ -32,7 +32,13 @@ var appPopup = {
      * onload event handler
      */
     init: function() {
-        if ( !this.add_handlers() ) {
+        // if popup menu is not there - exit
+        if (!fetch_object("app_popup_menu"))
+        {
+            return;
+        }
+
+        if (!this.add_handlers(null)) {
             return;
         }
 
@@ -53,7 +59,7 @@ var appPopup = {
         YAHOO.util.Dom.setStyle(YAHOO.util.Dom.getElementsByClassName("popupbody", "*", fetch_object('app_popup_menu')), "display", "block");
 
         // init for AJAX loaded posts (inline edit etc)
-        this.old_postbit_init = PostBit_Init;
+        appPopup.old_postbit_init = PostBit_Init;
         PostBit_Init = function (obj, post_id)
         {
             appPopup.add_handlers(obj);
@@ -67,8 +73,8 @@ var appPopup = {
      *
      * @param string posts_container - object fetched by posts_container_id
      */
-    add_handlers: function() {
-        if (!app_item_ids instanceof Array || app_item_ids.length < 1 || !app_pic_names instanceof Array || app_pic_names.length < 1 || !app_pic_path instanceof String)
+    add_handlers: function(obj) {
+        if (!(app_item_ids instanceof Array) || app_item_ids.length < 1 || !(app_pic_names instanceof Array) || app_pic_names.length < 1)
         {
             return false;
         }
