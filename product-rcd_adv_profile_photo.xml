@@ -653,13 +653,12 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
                 $selection_width = $faces[0]['w'];
                 $selection_height = $faces[0]['h'];
 
-                // we will scale at least to min selection size
-                $sel_scale_size = $min_size;
-                // if selection size is bigger than min_size, we will increase the area 20%,
-                // because hairs and chin could be cropped. If selection is smaller, then scale to min_size
-                if ($selection_width >= $sel_scale_size AND $selection_height >= $sel_scale_size)
+                // we will increase the area 20%, because hairs and chin could be cropped
+                $sel_scale_size = ceil(min($selection_width, $selection_height) * 1.2);
+                // if selection scale is still smaller than min size, then set it to min_size
+                if ($sel_scale_size < $min_size)
                 {
-                    $sel_scale_size = ceil(min($selection_width, $selection_height) * 1.2);
+                    $sel_scale_size = $min_size;
                 }
 
                 // scale x
