@@ -12,7 +12,6 @@ Special notes:
    b.launch the file
 
 3. OpenCV shall be installed. Facedetect shall be installed.
-4. Copy haarcascades folder with xml files to your website root
 
 Released at vborg:
 http://www.vbulletin.org/forum/misc.php?do=producthelp&amp;amp;amp;pid=rcd_face_recognition

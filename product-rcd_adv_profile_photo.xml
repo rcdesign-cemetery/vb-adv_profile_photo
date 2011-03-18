@@ -42,7 +42,7 @@ $db->show_errors();]]></uninstallcode>
 		</code>
 	</codes>
 	<templates>
-		<template name="app_editor" templatetype="template" date="1300425029" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
+		<template name="app_editor" templatetype="template" date="1300433607" username="admin" version="0.1"><![CDATA[<div id="app_main_wrapper" class="blockrow app_main_wrapper">
     <vb:if condition="$show['app_editing_options']">
         <div id="app_avatar_result_wrapper" class="avatar_result_wrapper"><p>{vb:rawphrase app_result}</p>
             <img id='avatar_img_selection' src="{vb:raw vboptions.cleargifurl}" />
@@ -85,7 +85,7 @@ $db->show_errors();]]></uninstallcode>
     </vb:if>
 <script type="text/javascript">
 <!--
-<vb:if condition="isset($show['app_not_ajax_saved_pic']) AND $show['app_not_ajax_saved_pic']">
+<vb:if condition="$show['app_not_ajax_saved_pic']">
     var app_img_width = {vb:raw width};
     var app_img_height = {vb:raw height};
     var app_sel_top = {vb:raw top};
@@ -94,7 +94,7 @@ $db->show_errors();]]></uninstallcode>
     var app_sel_height = {vb:raw sel_height};
     var app_min_length = {vb:raw min_length};
 </vb:if>
-<vb:if condition="isset($show['app_not_ajax_no_pic']) AND $show['app_not_ajax_no_pic']">
+<vb:if condition="$show['app_not_ajax_no_pic']">
     var app_img_width = {vb:raw width};
     var app_img_height = {vb:raw height};
     APP_CenterImage({vb:raw width});
@@ -259,7 +259,7 @@ $db->show_errors();]]></uninstallcode>
     appEditor.initPicture();
 //-->
 </script>]]></template>
-		<template name="app_editor_js" templatetype="template" date="1299219205" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo.js?v={vb:raw version}"></script>
+		<template name="app_editor_js" templatetype="template" date="1300434706" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo_editor.js?v={vb:raw version}"></script>
 <script type="text/javascript" src="{vb:stylevar yuipath}/connection/connection.js?v={vb:raw vboptions.simpleversion}"></script>
 <script src="{vb:stylevar yuipath}/dragdrop/dragdrop-min.js?v={vb:raw vboptions.simpleversion}"></script> 
 <script src="{vb:stylevar yuipath}/element/element-min.js?v={vb:raw vboptions.simpleversion}"></script> 
@@ -304,7 +304,7 @@ $db->show_errors();]]></uninstallcode>
 appPopup.init('posts');
 //-->
 </script>]]></template>
-		<template name="app_popup_js" templatetype="template" date="1299046470" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_bigpic_display.js?v={vb:raw version}"></script>
+		<template name="app_popup_js" templatetype="template" date="1300434722" username="admin" version="0.1"><![CDATA[<script type="text/javascript" src="clientscript/advanced_profile_photo_popup.js?v={vb:raw version}"></script>
 <vb:if condition="!isset($show['yui_menu_exists'])">
 <script type="text/javascript" src="{vb:stylevar yuipath}/yahoo-dom-event/yahoo-dom-event.js?v={vb:raw vboptions.simpleversion}"></script>
 <script type="text/javascript" src="{vb:stylevar yuipath}/container/container_core-min.js?v={vb:raw vboptions.simpleversion}"></script>
@@ -634,59 +634,63 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 
 
         $left = 0; $top = 0;
-        // Face detect
-        $faces = face_detect($new_path, 'haarcascades/haarcascade_frontalface_alt.xml');
 
-        if (!is_array($faces) OR empty($faces))
+        if (function_exists('face_detect'))
         {
-        }
-        else if (count($faces) > 1)
-        {
-        }
-        else
-        {
-            $left = $faces[0]['x'];
-            $top = $faces[0]['y'];
-            $selection_width = $faces[0]['w'];
-            $selection_height = $faces[0]['h'];
+            // Face detect
+            $faces = face_detect($new_path, $vbulletin->options['app_opencv_cascades_path'].'/haarcascade_frontalface_alt.xml');
 
-            // we will scale at least to min selection size
-            $sel_scale_size = $min_size;
-            // if selection size is bigger than min_size, we will increase the area 20%,
-            // because hairs and chin could be cropped. If selection is smaller, then scale to min_size
-            if ($selection_width >= $sel_scale_size AND $selection_height >= $sel_scale_size)
+            if (!is_array($faces) OR empty($faces))
             {
-                $sel_scale_size = ceil(min($selection_width, $selection_height) * 1.2);
             }
-
-            // scale x
-            $part = ceil(($sel_scale_size - $selection_width)/2);
-            $left-= $part;
-            $selection_width = $sel_scale_size;
-
-            if ($left < 0)
+            else if (count($faces) > 1)
             {
-                $left = 0;
             }
-
-            if ($left + $selection_width > $img_width)
+            else
             {
-                $left = $img_width - $selection_width;
-            }
+                $left = $faces[0]['x'];
+                $top = $faces[0]['y'];
+                $selection_width = $faces[0]['w'];
+                $selection_height = $faces[0]['h'];
 
-            // scale y
-            $part = ceil(($sel_scale_size - $selection_height)/2);
-            $top-= $part;
-            $selection_height = $sel_scale_size;
+                // we will scale at least to min selection size
+                $sel_scale_size = $min_size;
+                // if selection size is bigger than min_size, we will increase the area 20%,
+                // because hairs and chin could be cropped. If selection is smaller, then scale to min_size
+                if ($selection_width >= $sel_scale_size AND $selection_height >= $sel_scale_size)
+                {
+                    $sel_scale_size = ceil(min($selection_width, $selection_height) * 1.2);
+                }
 
-            if ($top < 0)
-            {
-                $top = 0;
-            }
+                // scale x
+                $part = ceil(($sel_scale_size - $selection_width)/2);
+                $left-= $part;
+                $selection_width = $sel_scale_size;
 
-            if ($top + $selection_height > $img_height)
-            {
-                $top = $img_height - $selection_height;
+                if ($left < 0)
+                {
+                    $left = 0;
+                }
+
+                if ($left + $selection_width > $img_width)
+                {
+                    $left = $img_width - $selection_width;
+                }
+
+                // scale y
+                $part = ceil(($sel_scale_size - $selection_height)/2);
+                $top-= $part;
+                $selection_height = $sel_scale_size;
+
+                if ($top < 0)
+                {
+                    $top = 0;
+                }
+
+                if ($top + $selection_height > $img_height)
+                {
+                    $top = $img_height - $selection_height;
+                }
             }
         }
 
@@ -999,6 +1003,8 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 			<phrase name="setting_app_img_folder_title" date="1299827966" username="admin" version="0.1"><![CDATA[Custom folder for big profile images]]></phrase>
 			<phrase name="setting_app_img_url_desc" date="1300084301" username="admin" version="0.1"><![CDATA[Relative to your forums home page]]></phrase>
 			<phrase name="setting_app_img_url_title" date="1300084301" username="admin" version="0.1"><![CDATA[URL to custom big profile pics]]></phrase>
+			<phrase name="setting_app_opencv_cascades_path_desc" date="1300434494" username="admin" version="0.1"><![CDATA[Path to xml files, used for face detection]]></phrase>
+			<phrase name="setting_app_opencv_cascades_path_title" date="1300434494" username="admin" version="0.1"><![CDATA[Path to opencv cascades]]></phrase>
 			<phrase name="setting_app_profile_size_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Enter profile picture size (max height/width) in pixels.]]></phrase>
 			<phrase name="setting_app_profile_size_title" date="1299827966" username="admin" version="0.1"><![CDATA[Generated profilepic size]]></phrase>
 			<phrase name="setting_app_selection_change_desc" date="1299827966" username="admin" version="0.1"><![CDATA[Selection is changed by jerks when you start it from the smallest value. This is done for better picture resizing. Please specify several steps in pixels.]]></phrase>
@@ -1031,6 +1037,10 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 			<setting varname="app_selection_change" displayorder="50">
 				<datatype>free</datatype>
 				<defaultvalue>120,130,140</defaultvalue>
+			</setting>
+			<setting varname="app_opencv_cascades_path" displayorder="70">
+				<datatype>free</datatype>
+				<defaultvalue>/usr/local/share/opencv/haarcascades</defaultvalue>
 			</setting>
 		</settinggroup>
 	</options>
