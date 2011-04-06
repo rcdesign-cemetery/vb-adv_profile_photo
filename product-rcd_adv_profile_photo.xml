@@ -504,6 +504,7 @@ if ($_REQUEST['do'] == 'chooser')
     print_form_header('misc', 'removesmallprofilephoto');
     print_table_header($vbphrase['app_remove_small_profile_photo'], 2, 0);
     print_input_row($vbphrase['app_number_of_profilepic_to_process_per_cycle'], 'perpage', 100);
+//    print_yes_no_row($vbphrase['app_order_by_date'], 'orderbydate', 1);
     print_submit_row($vbphrase['app_remove_small_profile_photo']);
 }
 // Form photos list
@@ -511,9 +512,17 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
 {
     $vbulletin->input->clean_array_gpc('r', array(
         'perpage' => TYPE_INT,
+        'orderbydate' => TYPE_BOOL,
         'lastid' => TYPE_INT,
+        'lastdateline' => TYPE_INT,
         'todeletelist' => TYPE_ARRAY,
     ));
+
+    if (!$vbulletin->GPC_exists['orderbydate'])
+    {
+        $vbulletin->GPC['orderbydate'] = true;
+    }
+
     if (!empty($vbulletin->GPC['todeletelist']))
     {
         foreach ($vbulletin->GPC['todeletelist'] as $user_id)
@@ -528,40 +537,45 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         echo '<hr />';
     }
     $sql ="SELECT
-              U.userid,
-              U.username
+              U.userid
             FROM
                 " . TABLE_PREFIX . "user             AS U
             LEFT JOIN
                 " . TABLE_PREFIX . "customprofilepic AS P ON (P.userid = U.userid)
             WHERE P.width > 0";
-    if ($vbulletin->GPC['lastid'] > 0)
+    if ($vbulletin->GPC['orderbydate'] AND $vbulletin->GPC['lastdateline'] > 0)
+    {
+        $sql .= "  AND P.dateline < " . $vbulletin->GPC['lastdateline'];
+    }
+    elseif ($vbulletin->GPC['lastid'] > 0)
     {
         $sql .= "  AND U.userid < " . $vbulletin->GPC['lastid'];
     }
     $sql .= "
             ORDER BY
-                U.userid DESC
+                " . ($vbulletin->GPC['orderbydate'] ? "P.dateline" : "U.userid") . " DESC
             LIMIT
                 " . $vbulletin->GPC['perpage'];
     $profilepics = $db->query_read($sql);
     print_form_header('misc', 'removesmallprofilephoto');
-    $i = 0;
+
     while ($profilepic = $db->fetch_array($profilepics))
     {
-        $userinfo = fetch_userinfo($profilepic['userid']);
+        $userinfo = fetch_userinfo($profilepic['userid'], FETCH_USERINFO_PROFILEPIC);
         cache_permissions($userinfo);
         $img_src = '../' .$vbulletin->options['profilepicurl'] . '/profilepic' . $profilepic['userid'] . '_' . $userinfo['profilepicrevision'] . '.gif';
         echo '<input type="checkbox" name="todeletelist['. $i.']" value="'. $profilepic['userid'] . '" />';
         echo '   <img src="'. $img_src . '" />';
-        echo '   <a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $profilepic['username'] . '</a>';
+        echo "&nbsp;" . '   <a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $userinfo['username'] . "</a>";
+        echo vbdate('d-m-Y', $userinfo['profilepicdateline'], false, false);
         echo '<br><br>';
-        $i++;
     }
-    if (0 < $i)
+    if (isset($userinfo))
     {
         echo '<input type="hidden" name="lastid" value="'. $userinfo['userid'] . '" />';
+        echo '<input type="hidden" name="lastdateline" value="'. $userinfo['profilepicdateline'] . '" />';
         echo '<input type="hidden" name="perpage" value="'. $vbulletin->GPC['perpage'] . '" />';
+        echo '<input type="hidden" name="orderbydate" value="'. $vbulletin->GPC['orderbydate'] . '" />';
         echo '<input type="submit" value="Next" />';
     }
     else
@@ -874,6 +888,14 @@ if (THIS_SCRIPT == 'showthread')
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
+			<title>Deny avatar edit</title>
+			<hookname>profile_start</hookname>
+			<phpcode><![CDATA[if (($_POST['do'] == 'updateavatar') OR ($_REQUEST['do'] == 'editavatar'))
+{
+    $vbulletin->options['avatarenabled'] = false;
+}]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
 			<title>Save pictures</title>
 			<hookname>profile_start</hookname>
 			<phpcode><![CDATA[if ($_POST['do'] == 'save_picture' AND $show['member'])
@@ -907,14 +929,6 @@ if (THIS_SCRIPT == 'showthread')
     unset($img_editor);
 
     eval(print_standard_redirect('redirect_updatethanks', true, true));
-}]]></phpcode>
-		</plugin>
-		<plugin active="1" executionorder="5">
-			<title>Deny avatar edit</title>
-			<hookname>profile_start</hookname>
-			<phpcode><![CDATA[if (($_POST['do'] == 'updateavatar') OR ($_REQUEST['do'] == 'editavatar'))
-{
-    $vbulletin->options['avatarenabled'] = false;
 }]]></phpcode>
 		</plugin>
 		<plugin active="1" executionorder="5">
@@ -990,6 +1004,7 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 			<phrase name="app_list_of_small_profile_photo" date="1296528391" username="admin" version=""><![CDATA[List of small profile photo]]></phrase>
 			<phrase name="app_number_of_pics_to_process_per_cycle" date="1300174277" username="admin" version=""><![CDATA[Number of pics to regenerate per cycle]]></phrase>
 			<phrase name="app_number_of_profilepic_to_process_per_cycle" date="1296528418" username="admin" version=""><![CDATA[Number of profile picture to process per cycle]]></phrase>
+			<phrase name="app_order_by_date" date="1302084979" username="varnak" version=""><![CDATA[Sort by picture date]]></phrase>
 			<phrase name="app_rebuild_profile_photo_avatar_thumbnails" date="1300174299" username="admin" version=""><![CDATA[Rebuild Profile Photos & Avatars from big pics]]></phrase>
 			<phrase name="app_remove_small_profile_photo" date="1296528487" username="admin" version=""><![CDATA[Remove small profile photo]]></phrase>
 		</phrasetype>
@@ -1049,6 +1064,4 @@ if ($post['bigpicsaved'] AND $post['bigpicpopup'])
 	</cronentries>
 	<faqentries>
 	</faqentries>
-	<templateedits>
-	</templateedits>
 </product>
