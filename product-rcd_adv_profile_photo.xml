@@ -566,7 +566,7 @@ if ($_REQUEST['do'] == 'removesmallprofilephoto')
         $img_src = '../' .$vbulletin->options['profilepicurl'] . '/profilepic' . $profilepic['userid'] . '_' . $userinfo['profilepicrevision'] . '.gif';
         echo '<input type="checkbox" name="todeletelist['. $i.']" value="'. $profilepic['userid'] . '" />';
         echo '   <img src="'. $img_src . '" />';
-        echo "&nbsp;" . '   <a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $userinfo['username'] . "</a>";
+        echo "&nbsp;" . '<a href="../member.php?do=getinfo&u='. $profilepic['userid'] . '">'. $userinfo['username'] . "</a>&nbsp;";
         echo vbdate('d-m-Y', $userinfo['profilepicdateline'], false, false);
         echo '<br><br>';
     }
